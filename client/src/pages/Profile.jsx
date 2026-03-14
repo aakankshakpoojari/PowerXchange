@@ -1,0 +1,201 @@
+import { useState } from "react";
+
+const listedBooks = [
+  { id: 1, title: "H.C. Verma Vol. 1", author: "H.C. Verma", subject: "Physics", status: "available", color: "bg-blue-100 text-blue-700" },
+  { id: 2, title: "R.D. Sharma Class 12", author: "R.D. Sharma", subject: "Maths", status: "available", color: "bg-green-100 text-green-700" },
+  { id: 3, title: "Organic Chemistry", author: "Morrison & Boyd", subject: "Chem", status: "on hold", color: "bg-amber-100 text-amber-700" },
+  { id: 4, title: "CLRS Algorithms", author: "Cormen et al.", subject: "CS", status: "available", color: "bg-purple-100 text-purple-700" },
+  { id: 5, title: "Campbell Biology", author: "Jane Reece", subject: "Biology", status: "available", color: "bg-red-100 text-red-600" },
+  { id: 6, title: "Microeconomics", author: "N. Gregory Mankiw", subject: "Econ", status: "sold", color: "bg-teal-100 text-teal-700" },
+];
+
+const wishlistBooks = [
+  { id: 1, title: "Clean Code", author: "Robert C. Martin" },
+  { id: 2, title: "The Pragmatic Programmer", author: "Hunt & Thomas" },
+  { id: 3, title: "Discrete Mathematics", author: "Kenneth Rosen" },
+  { id: 4, title: "System Design Interview", author: "Alex Xu" },
+];
+
+const history = [
+  { id: 1, type: "exchange", title: "Data Structures in C", with: "Rahul Shetty", date: "Mar 10, 2025" },
+  { id: 2, type: "bought", title: "Operating Systems Concepts", with: "Priya Nair · ₹180", date: "Feb 28, 2025" },
+  { id: 3, type: "sold", title: "Microeconomics", with: "Kiran Bhat · ₹220", date: "Feb 14, 2025" },
+  { id: 4, type: "exchange", title: "JEE Physics Problems", with: "Deepak Kamath", date: "Jan 30, 2025" },
+];
+
+const statusStyles = {
+  available: "bg-green-100 text-green-700",
+  "on hold": "bg-amber-100 text-amber-700",
+  sold: "bg-blue-100 text-blue-700",
+};
+
+const historyIcon = {
+  exchange: "⇄",
+  bought: "↓",
+  sold: "↑",
+};
+
+const historyBg = {
+  exchange: "bg-green-100",
+  bought: "bg-blue-100",
+  sold: "bg-amber-100",
+};
+
+export default function Profile() {
+  const [activeTab, setActiveTab] = useState("listed");
+  const [wishlist, setWishlist] = useState(wishlistBooks);
+  const [form, setForm] = useState({
+    name: "Aakanksha Poojari",
+    email: "aakanksha@email.com",
+    college: "NITK Surathkal",
+    location: "Mangaluru, KA",
+    bio: "Loves books, hates paying full price for them.",
+  });
+
+  const tabs = [
+    { key: "listed", label: "My listed books" },
+    { key: "wishlist", label: "Wishlist" },
+    { key: "history", label: "History" },
+    { key: "edit", label: "Edit profile" },
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+
+      {/* Profile Hero */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 flex items-center gap-5 mb-6">
+        <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-medium shrink-0">
+          AK
+        </div>
+        <div>
+          <p className="text-lg font-medium text-gray-900">{form.name}</p>
+          <p className="text-sm text-gray-500 mt-0.5">{form.email} · {form.location}</p>
+          <div className="flex gap-5 mt-2">
+            <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">6</span> listed</span>
+            <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">3</span> exchanged</span>
+            <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">{wishlist.length}</span> wishlist</span>
+          </div>
+        </div>
+        <button
+          onClick={() => setActiveTab("edit")}
+          className="ml-auto text-sm border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition"
+        >
+          Edit profile
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-5 py-2.5 text-sm border-b-2 transition ${
+              activeTab === tab.key
+                ? "border-gray-900 text-gray-900 font-medium"
+                : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* My Listed Books */}
+      {activeTab === "listed" && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {listedBooks.map((book) => (
+            <div key={book.id} className="bg-white border border-gray-200 rounded-2xl p-4">
+              <div className={`w-full h-20 rounded-lg flex items-center justify-center text-xs font-medium mb-3 ${book.color}`}>
+                {book.subject}
+              </div>
+              <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{book.author}</p>
+              <span className={`inline-block mt-2 text-xs px-2.5 py-0.5 rounded-md ${statusStyles[book.status]}`}>
+                {book.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Wishlist */}
+      {activeTab === "wishlist" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {wishlist.map((book) => (
+            <div key={book.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-10 h-14 bg-purple-100 rounded shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">{book.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{book.author}</p>
+              </div>
+              <button
+                onClick={() => setWishlist(wishlist.filter((b) => b.id !== book.id))}
+                className="ml-auto text-gray-400 hover:text-red-500 text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* History */}
+      {activeTab === "history" && (
+        <div className="flex flex-col gap-3">
+          {history.map((item) => (
+            <div key={item.id} className="bg-white border border-gray-200 rounded-2xl px-5 py-4 flex items-center gap-4">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 ${historyBg[item.type]}`}>
+                {historyIcon[item.type]}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {item.type.charAt(0).toUpperCase() + item.type.slice(1)} · {item.title}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {item.type === "exchange" ? "With" : item.type === "bought" ? "From" : "To"} {item.with}
+                </p>
+              </div>
+              <span className="ml-auto text-xs text-gray-400 whitespace-nowrap">{item.date}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit Profile */}
+      {activeTab === "edit" && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-lg">
+          {[
+            { label: "Full name", key: "name", type: "text" },
+            { label: "Email", key: "email", type: "email" },
+            { label: "College / Institution", key: "college", type: "text" },
+            { label: "Location", key: "location", type: "text" },
+          ].map(({ label, key, type }) => (
+            <div key={key} className="mb-5">
+              <label className="text-xs text-gray-500 block mb-1.5">{label}</label>
+              <input
+                type={type}
+                value={form[key]}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
+          ))}
+          <div className="mb-5">
+            <label className="text-xs text-gray-500 block mb-1.5">Bio</label>
+            <textarea
+              rows={3}
+              value={form.bio}
+              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-300 resize-none"
+            />
+          </div>
+          <button className="bg-gray-900 text-white text-sm font-medium px-6 py-2 rounded-lg hover:bg-gray-700 transition">
+            Save changes
+          </button>
+        </div>
+      )}
+
+    </div>
+  );
+}
