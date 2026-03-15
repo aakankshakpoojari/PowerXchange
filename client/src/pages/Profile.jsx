@@ -44,13 +44,17 @@ const historyBg = {
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("listed");
   const [wishlist, setWishlist] = useState(wishlistBooks);
-  const [form, setForm] = useState({
+
+  const initialForm = {
     name: "Aakanksha Poojari",
     email: "aakanksha@email.com",
     college: "NITK Surathkal",
     location: "Mangaluru, KA",
     bio: "Loves books, hates paying full price for them.",
-  });
+  };
+
+  const [form, setForm] = useState(initialForm);
+  const [draft, setDraft] = useState(initialForm);
 
   const tabs = [
     { key: "listed", label: "My listed books" },
@@ -58,6 +62,11 @@ export default function Profile() {
     { key: "history", label: "History" },
     { key: "edit", label: "Edit profile" },
   ];
+
+  const handleTabChange = (tab) => {
+    if (tab === "edit") setDraft(form);
+    setActiveTab(tab);
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -77,7 +86,7 @@ export default function Profile() {
           </div>
         </div>
         <button
-          onClick={() => setActiveTab("edit")}
+          onClick={() => handleTabChange("edit")}
           className="ml-auto text-sm border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition"
         >
           Edit profile
@@ -89,7 +98,7 @@ export default function Profile() {
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => handleTabChange(tab.key)}
             className={`px-5 py-2.5 text-sm border-b-2 transition ${
               activeTab === tab.key
                 ? "border-gray-900 text-gray-900 font-medium"
@@ -175,8 +184,8 @@ export default function Profile() {
               <label className="text-xs text-gray-500 block mb-1.5">{label}</label>
               <input
                 type={type}
-                value={form[key]}
-                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                value={draft[key]}
+                onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-300"
               />
             </div>
@@ -185,14 +194,25 @@ export default function Profile() {
             <label className="text-xs text-gray-500 block mb-1.5">Bio</label>
             <textarea
               rows={3}
-              value={form.bio}
-              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              value={draft.bio}
+              onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-300 resize-none"
             />
           </div>
-          <button className="bg-gray-900 text-white text-sm font-medium px-6 py-2 rounded-lg hover:bg-gray-700 transition">
-            Save changes
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setForm(draft)}
+              className="bg-gray-900 text-white text-sm font-medium px-6 py-2 rounded-lg hover:bg-gray-700 transition"
+            >
+              Save changes
+            </button>
+            <button
+              onClick={() => setDraft(form)}
+              className="text-sm border border-gray-300 rounded-lg px-5 py-2 hover:bg-gray-50 transition"
+            >
+              Discard
+            </button>
+          </div>
         </div>
       )}
 
