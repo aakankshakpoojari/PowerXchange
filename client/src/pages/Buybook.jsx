@@ -71,10 +71,10 @@ export default function BookDetail() {
         {/* Seller Info */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-5 flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-medium shrink-0">
-            {book.seller?.charAt(0) || "S"}
+            {(typeof book.seller === "object" ? book.seller?.name : book.seller)?.charAt(0) || "S"}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">{book.seller || "Unknown Seller"}</p>
+            <p className="text-sm font-medium text-gray-900">{typeof book.seller === "object" ? book.seller?.name : book.seller || "Unknown Seller"}</p>
             <p className="text-xs text-gray-500">NITK Surathkal · Mangaluru, KA</p>
           </div>
           <button className="ml-auto text-sm border border-gray-300 rounded-lg px-4 py-1.5 hover:bg-gray-50 transition">
