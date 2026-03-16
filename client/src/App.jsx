@@ -40,8 +40,9 @@ export default function App() {
         <Route path="/buybook"     element={guard(<BuyBook    {...sharedProps} />)} />
         <Route path="/author/:id"  element={guard(<AuthorPage {...sharedProps} />)} />
         <Route path="/genre/:name" element={guard(<GenrePage  {...sharedProps} />)} />
-        <Route path="/sellbook"    element={guard(<SellBook />)} />
-        <Route path="*"            element={<Navigate to="/" replace />} />
+        <Route path="*"           element={<Navigate to="/" replace />} />
+        {/* <Route path="/browse"   element={<Browse />} /> */}
+        <Route path="/sellbook" element={<SellBook />} />
       </Routes>
     </BrowserRouter>
   );
