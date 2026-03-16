@@ -6,6 +6,8 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import  Buybook from "./pages/Buybook";
 import HomePage from "./pages/HomePage";
+// import Browse   from "./pages/Browse";    // or wherever Browse.jsx lives
+import SellBook from "./pages/Sellbook";  // or wherever SellBook.jsx lives
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -23,6 +25,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/buybook" element={<Buybook />} />
         <Route path="/home" element={<HomePage isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+        {/* <Route path="/browse"   element={<Browse />} /> */}
+        <Route path="/sellbook" element={<SellBook />} />
       </Routes>
     </BrowserRouter>
   );
