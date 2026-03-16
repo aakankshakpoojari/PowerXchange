@@ -35,7 +35,7 @@ export default function Navbar({ isProfile }) {
         {["Home", "Browse"].map((link) => (
           <span
             key={link}
-            onClick={() => navigate(link === "home" ? "/" : `/${link.toLowerCase()}`)}
+            onClick={() => navigate(link === "Home" ? "/" : `/${link.toLowerCase()}`)}
             className="text-sm text-slate-500 font-medium cursor-pointer hover:text-blue-600 transition-colors"
           >
             {link}

@@ -1,20 +1,21 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 
 const listedBooks = [
-  { id: 1, title: "H.C. Verma Vol. 1", author: "H.C. Verma", subject: "Physics", status: "available", color: "bg-blue-100 text-blue-700" },
-  { id: 2, title: "R.D. Sharma Class 12", author: "R.D. Sharma", subject: "Maths", status: "available", color: "bg-green-100 text-green-700" },
-  { id: 3, title: "Organic Chemistry", author: "Morrison & Boyd", subject: "Chem", status: "on hold", color: "bg-amber-100 text-amber-700" },
-  { id: 4, title: "CLRS Algorithms", author: "Cormen et al.", subject: "CS", status: "available", color: "bg-purple-100 text-purple-700" },
-  { id: 5, title: "Campbell Biology", author: "Jane Reece", subject: "Biology", status: "available", color: "bg-red-100 text-red-600" },
-  { id: 6, title: "Microeconomics", author: "N. Gregory Mankiw", subject: "Econ", status: "sold", color: "bg-teal-100 text-teal-700" },
+  { id: 1, title: "H.C. Verma Vol. 1", author: "H.C. Verma", subject: "Physics", status: "available", color: "bg-blue-100 text-blue-700", price: 180, condition: "Good", seller: "Aakanksha Poojari" },
+  { id: 2, title: "R.D. Sharma Class 12", author: "R.D. Sharma", subject: "Maths", status: "available", color: "bg-green-100 text-green-700", price: 220, condition: "Like New", seller: "Aakanksha Poojari" },
+  { id: 3, title: "Organic Chemistry", author: "Morrison & Boyd", subject: "Chem", status: "on hold", color: "bg-amber-100 text-amber-700", price: 150, condition: "Fair", seller: "Aakanksha Poojari" },
+  { id: 4, title: "CLRS Algorithms", author: "Cormen et al.", subject: "CS", status: "available", color: "bg-purple-100 text-purple-700", price: 300, condition: "Good", seller: "Aakanksha Poojari" },
+  { id: 5, title: "Campbell Biology", author: "Jane Reece", subject: "Biology", status: "available", color: "bg-red-100 text-red-600", price: 200, condition: "Like New", seller: "Aakanksha Poojari" },
+  { id: 6, title: "Microeconomics", author: "N. Gregory Mankiw", subject: "Econ", status: "sold", color: "bg-teal-100 text-teal-700", price: 120, condition: "Fair", seller: "Aakanksha Poojari" },
 ];
 
 const wishlistBooks = [
-  { id: 1, title: "Clean Code", author: "Robert C. Martin" },
-  { id: 2, title: "The Pragmatic Programmer", author: "Hunt & Thomas" },
-  { id: 3, title: "Discrete Mathematics", author: "Kenneth Rosen" },
-  { id: 4, title: "System Design Interview", author: "Alex Xu" },
+  { id: 1, title: "Clean Code", author: "Robert C. Martin", price: 250, condition: "Good", seller: "Rahul Shetty" },
+  { id: 2, title: "The Pragmatic Programmer", author: "Hunt & Thomas", price: 200, condition: "Like New", seller: "Priya Nair" },
+  { id: 3, title: "Discrete Mathematics", author: "Kenneth Rosen", price: 180, condition: "Fair", seller: "Kiran Bhat" },
+  { id: 4, title: "System Design Interview", author: "Alex Xu", price: 300, condition: "Good", seller: "Deepak Kamath" },
 ];
 
 const history = [
@@ -30,19 +31,11 @@ const statusStyles = {
   sold: "bg-blue-100 text-blue-700",
 };
 
-const historyIcon = {
-  exchange: "⇄",
-  bought: "↓",
-  sold: "↑",
-};
-
-const historyBg = {
-  exchange: "bg-green-100",
-  bought: "bg-blue-100",
-  sold: "bg-amber-100",
-};
+const historyIcon = { exchange: "⇄", bought: "↓", sold: "↑" };
+const historyBg = { exchange: "bg-green-100", bought: "bg-blue-100", sold: "bg-amber-100" };
 
 export default function Profile() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("listed");
   const [wishlist, setWishlist] = useState(wishlistBooks);
 
@@ -69,11 +62,15 @@ export default function Profile() {
     setActiveTab(tab);
   };
 
+  const handleBuy = (book) => {
+    navigate("/buybook", { state: { book } });
+  };
+
   return (
     <div className="min-h-screen bg-white">
-      <Navbar isprofile = {true}/>
+      <Navbar isprofile={true} />
       <div className="max-w-4xl mx-auto px-4 py-8">
-        
+
         {/* Profile Hero */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 flex items-center gap-5 mb-6">
           <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-medium shrink-0">
@@ -117,7 +114,7 @@ export default function Profile() {
         {activeTab === "listed" && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {listedBooks.map((book) => (
-              <div key={book.id} className="bg-white border border-gray-200 rounded-2xl p-4">
+              <div key={book.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col">
                 <div className={`w-full h-20 rounded-lg flex items-center justify-center text-xs font-medium mb-3 ${book.color}`}>
                   {book.subject}
                 </div>
@@ -126,6 +123,15 @@ export default function Profile() {
                 <span className={`inline-block mt-2 text-xs px-2.5 py-0.5 rounded-md ${statusStyles[book.status]}`}>
                   {book.status}
                 </span>
+                {/* Buy button — only show if available */}
+                {book.status === "available" && (
+                  <button
+                    onClick={() => handleBuy(book)}
+                    className="mt-3 w-full bg-indigo-600 text-white text-xs py-1.5 rounded-lg hover:bg-indigo-700 transition"
+                  >
+                    Buy Book
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -141,12 +147,20 @@ export default function Profile() {
                   <p className="text-sm font-medium text-gray-900">{book.title}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{book.author}</p>
                 </div>
-                <button
-                  onClick={() => setWishlist(wishlist.filter((b) => b.id !== book.id))}
-                  className="ml-auto text-gray-400 hover:text-red-500 text-lg leading-none"
-                >
-                  ×
-                </button>
+                <div className="ml-auto flex flex-col gap-1.5 items-end">
+                  <button
+                    onClick={() => handleBuy(book)}
+                    className="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition"
+                  >
+                    Buy Book
+                  </button>
+                  <button
+                    onClick={() => setWishlist(wishlist.filter((b) => b.id !== book.id))}
+                    className="text-gray-400 hover:text-red-500 text-lg leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             ))}
           </div>

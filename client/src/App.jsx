@@ -4,8 +4,7 @@ import Landing from "./pages/Landing";
 import Profile from "./pages/Profile";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
-import HomePage from "./pages/HomePage";
-import BookDetail from "./pages/BookDetail";
+import  Buybook from "./pages/Buybook";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false); // ✅ add this
@@ -15,10 +14,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/signup" element={<Signup onSignup={() => setIsLoggedIn(true)} />} />
-        <Route path="/login"  element={<Login  onLogin={() => setIsLoggedIn(true)} />} />
-        <Route path="/home"   element={<HomePage isLoggedIn={isLoggedIn} onLogout={() => setIsLoggedIn(false)} />} />
-        <Route path="/book/:id" element={<BookDetail />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/buybook" element={<Buybook />} />
       </Routes>
     </BrowserRouter>
   );
