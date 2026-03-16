@@ -21,7 +21,7 @@ const POPULAR_AUTHORS = [
 
 const CONDITIONS = ["Like New", "Good", "Fair", "Worn"];
 
-export default function SellBook() {
+export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -74,7 +74,7 @@ export default function SellBook() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <Navbar />
+    <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} cart={cart} wishlist={wishlist} />
         <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
           <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-3xl">
             ✓
