@@ -88,7 +88,7 @@ export default function Navbar({ isLoggedIn, onLogout, cart = [], wishlist = [] 
               )}
             </button>
 
-            {/* My Profile */}
+            {!/* My Profile */}
             <button onClick={() => navigate("/profile")}
               className="flex items-center gap-2 text-sm text-slate-600 font-medium hover:text-blue-600 transition-colors">
               <span className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs border border-blue-200">

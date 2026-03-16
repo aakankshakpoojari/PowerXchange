@@ -9,6 +9,8 @@ import BookDetail from "./pages/BookDetail";
 import BuyBook    from "./pages/Buybook";
 import AuthorPage from "./pages/AuthorPage";
 import GenrePage  from "./pages/GenrePage";
+// import Browse   from "./pages/Browse";    // or wherever Browse.jsx lives
+import SellBook from "./pages/Sellbook";  // or wherever SellBook.jsx lives
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -42,6 +44,8 @@ export default function App() {
         <Route path="/author/:id" element={guard(<AuthorPage {...sharedProps} />)} />
         <Route path="/genre/:name" element={guard(<GenrePage  {...sharedProps} />)} />
         <Route path="*"           element={<Navigate to="/" replace />} />
+        {/* <Route path="/browse"   element={<Browse />} /> */}
+        <Route path="/sellbook" element={<SellBook />} />
       </Routes>
     </BrowserRouter>
   );
