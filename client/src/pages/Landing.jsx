@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 
-function Landing() {
+function Landing({ isLoggedIn, onLogout, cart, wishlist }) {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar isprofile = {false}/>
+        <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} cart={cart} wishlist={wishlist} />
       <div className="min-h-screen bg-white">
         {/* Hero Section */}
         <div className="flex flex-col items-center text-center mt-24 px-4">

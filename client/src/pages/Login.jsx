@@ -8,7 +8,7 @@ function Login({ onLogin }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onLogin) onLogin();   // ← sets isLoggedIn = true in App.jsx
-    navigate("/home");
+    navigate("/");  // ← redirects to HomePage.jsx after login
   };
 
   return (
