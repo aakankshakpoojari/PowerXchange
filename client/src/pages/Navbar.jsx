@@ -53,10 +53,6 @@ export default function Navbar({ isLoggedIn, onLogout, cart = [], wishlist = [] 
               className="text-sm text-slate-500 font-medium cursor-pointer hover:text-blue-600 transition-colors">
               Home
             </span>
-            <span onClick={() => navigate("/browse")}
-              className="text-sm text-slate-500 font-medium cursor-pointer hover:text-blue-600 transition-colors">
-              Browse
-            </span>
             <button onClick={() => navigate("/sellbook")}
               className="text-sm text-slate-500 font-medium hover:text-blue-600 transition-colors">
               Sell

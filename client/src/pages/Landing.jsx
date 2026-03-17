@@ -17,15 +17,19 @@ function Landing({ isLoggedIn, onLogout, cart, wishlist }) {
             PowerXchange automatically matches you with students who have the exact book you need — at a fraction of the price.
           </p>
           <div className="flex gap-4 mt-8">
+            {/* Get Started — only show when NOT logged in */}
+            {!isLoggedIn && (
+              <button
+                onClick={() => navigate("/signup")}
+                className="bg-indigo-600 text-white px-6 py-3 rounded-lg text-lg hover:bg-indigo-700"
+              >
+                Get Started
+              </button>
+            )}
             <button
-              onClick={() => navigate("/Login")}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-lg text-lg hover:bg-indigo-700"
+              onClick={() => navigate(isLoggedIn ? "/home" : "/login")}
+              className="border border-indigo-600 text-indigo-600 px-6 py-3 rounded-lg text-lg hover:bg-indigo-50"
             >
-              Get Started
-            </button>
-            <button
-             onClick={() => navigate("/book/1")}
-             className="border border-indigo-600 text-indigo-600 px-6 py-3 rounded-lg text-lg hover:bg-indigo-50">
               Browse Books
             </button>
           </div>
