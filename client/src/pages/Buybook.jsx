@@ -1,30 +1,94 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
-export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist }) {
-  const { state } = useLocation();
+export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist }) {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const book = state?.book;
+  const [book, setBook] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const [mode, setMode] = useState(null); // "buy" | "exchange"
+  const [mode, setMode] = useState(null);
   const [message, setMessage] = useState("");
   const [exchangeBook, setExchangeBook] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const fetchBook = async () => {
+      const { data, error } = await supabase
+        .from("books")
+        .select("*, profiles(full_name, email, college)")
+        .eq("id", id)
+        .single();
+
+      if (!error && data) {
+        setBook({
+          ...data,
+          seller_name: data.seller_name || data.profiles?.full_name || "Seller",
+          seller_email: data.seller_email || data.profiles?.email,
+          seller_college: data.profiles?.college,
+          seller_phone: data.seller_phone,
+          seller_address: data.seller_address,
+          seller_city: data.seller_city,
+          seller_pincode: data.seller_pincode,
+        });
+      }
+      setLoading(false);
+    };
+
+    fetchBook();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-gray-500">Loading book details...</p>
+      </div>
+    );
+  }
 
   if (!book) {
     return (
       <div className="min-h-screen bg-white">
         <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} cart={cart} wishlist={wishlist} />
-        <p className="text-center mt-20 text-gray-500">No book selected.</p>
+        <div className="text-center mt-20">
+          <p className="text-gray-500 mb-4">Book not found.</p>
+          <button onClick={() => navigate("/home")} className="bg-indigo-600 text-white px-6 py-2 rounded-lg">
+            Browse Books
+          </button>
+        </div>
       </div>
     );
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!message.trim()) return;
-    setSubmitted(true);
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please login to proceed");
+      navigate("/login");
+      return;
+    }
+
+    // Create a transaction record
+    const { error } = await supabase.from("transactions").insert({
+      book_id: book.id,
+      buyer_id: user.id,
+      seller_id: book.seller_id,
+      price: book.price,
+      status: "pending",
+      notes: message,
+    });
+
+    if (error) {
+      alert("Error sending request: " + error.message);
+    } else {
+      setSubmitted(true);
+    }
   };
 
   return (
@@ -44,7 +108,7 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist }) {
         <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-5">
           <div className="flex gap-5 items-start">
             <div className="w-16 h-20 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-medium shrink-0">
-              {book.subject || "Book"}
+              {book.genre || "Book"}
             </div>
             <div className="flex-1">
               <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
@@ -55,9 +119,9 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist }) {
                     {book.condition}
                   </span>
                 )}
-                {book.subject && (
+                {book.genre && (
                   <span className="text-xs px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-700 font-medium">
-                    {book.subject}
+                    {book.genre}
                   </span>
                 )}
               </div>
@@ -71,15 +135,12 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist }) {
         {/* Seller Info */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-5 flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-medium shrink-0">
-            {(typeof book.seller === "object" ? book.seller?.name : book.seller)?.charAt(0) || "S"}
+            {(book.seller_name || "S")[0]}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">{typeof book.seller === "object" ? book.seller?.name : book.seller || "Unknown Seller"}</p>
-            <p className="text-xs text-gray-500">NITK Surathkal · Mangaluru, KA</p>
+            <p className="text-sm font-medium text-gray-900">{book.seller_name || "Seller"}</p>
+            <p className="text-xs text-gray-500">{book.seller_college || "College info not available"}</p>
           </div>
-          <button className="ml-auto text-sm border border-gray-300 rounded-lg px-4 py-1.5 hover:bg-gray-50 transition">
-            View Profile
-          </button>
         </div>
 
         {/* Action Buttons */}

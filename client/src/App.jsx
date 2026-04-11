@@ -44,7 +44,7 @@ export default function App() {
         <Route path="/browse"      element={guard(<HomePage   {...sharedProps} />)} />
         <Route path="/profile"     element={guard(<Profile    {...sharedProps} />)} />
         <Route path="/books/:id"   element={guard(<BookDetail {...sharedProps} />)} />
-        <Route path="/buybook"     element={guard(<BuyBook  {...sharedProps} />)} />
+        <Route path="/buybook/:id"     element={guard(<BuyBook  {...sharedProps} />)} />
         <Route path="/author/:id"  element={guard(<AuthorPage {...sharedProps} />)} />
         <Route path="/genre/:name" element={guard(<GenrePage  {...sharedProps} />)} />
         <Route path="/genre-books/:genre" element={guard(<GenreBooks {...sharedProps} />)} />
