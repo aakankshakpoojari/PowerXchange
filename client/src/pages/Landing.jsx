@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
+import Footer from "./Footer";
 
 function Landing({ isLoggedIn, onLogout, cart, wishlist }) {
   const navigate = useNavigate();
@@ -54,6 +55,7 @@ function Landing({ isLoggedIn, onLogout, cart, wishlist }) {
           </div>
         </div>
 
+        <Footer />
       </div>
     </div>
   );

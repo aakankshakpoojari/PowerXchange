@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 
 export default function AdminTransactions() {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, completed, pending, cancelled
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     fetchTransactions();
@@ -55,18 +56,26 @@ export default function AdminTransactions() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
       <header className="bg-indigo-700 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <Link to="/admin" className="text-indigo-200 hover:text-white">&larr; Back to Dashboard</Link>
-          <h1 className="text-2xl font-bold">Transaction Management</h1>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div>
+            <Link to="/admin" className="text-indigo-200 hover:text-white">
+              &larr; Back to Dashboard
+            </Link>
+            <h1 className="text-2xl font-bold">Transaction Management</h1>
+          </div>
+          <button
+            onClick={() => { supabase.auth.signOut(); navigate("/"); }}
+            className="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-500"
+          >
+            Logout
+          </button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-6 py-8 w-full">
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex gap-2 flex-wrap">
+        <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex gap-2 flex-wrap w-full">
           <button
             onClick={() => setFilter("all")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -110,7 +119,7 @@ export default function AdminTransactions() {
         </div>
 
         {/* Transactions Table */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden w-full">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>

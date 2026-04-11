@@ -22,7 +22,6 @@ export default function AdminDashboard() {
   }, []);
 
   async function loadDashboardData() {
-    // Step 1: Get session first (more reliable than getUser())
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -32,8 +31,15 @@ export default function AdminDashboard() {
 
     const user = session.user;
 
-    // Step 2: Run all data fetches in parallel
-    const [profileRes, usersCountRes, approvedCountRes, pendingCountRes, booksCountRes, recentUsersRes, pendingUsersRes] = await Promise.all([
+    const [
+      profileRes,
+      usersCountRes,
+      approvedCountRes,
+      pendingCountRes,
+      booksCountRes,
+      recentUsersRes,
+      pendingUsersRes
+    ] = await Promise.all([
       supabase.from("profiles").select("full_name, email, role").eq("id", user.id).single(),
       supabase.from("profiles").select("*", { count: "exact", head: true }),
       supabase.from("profiles").select("*", { count: "exact", head: true }).eq("status", "approved"),
@@ -43,7 +49,6 @@ export default function AdminDashboard() {
       supabase.from("profiles").select("id, full_name, email, status, college, usn").eq("status", "pending").order("created_at", { ascending: false }).limit(5),
     ]);
 
-    // Check admin role
     if (profileRes.error || !profileRes.data || profileRes.data.role !== "admin") {
       navigate("/home");
       return;
@@ -78,23 +83,22 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Admin Header */}
+      {/* Header */}
       <header className="bg-indigo-700 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-indigo-200 text-sm">Welcome, {admin?.full_name || admin?.email || "Admin"}</p>
+            <p className="text-indigo-200 text-sm">
+              Welcome, {admin?.full_name || admin?.email || "Admin"}
+            </p>
           </div>
           <div className="flex gap-4">
-            <Link
-              to="/home"
-              className="px-4 py-2 text-indigo-100 hover:text-white transition"
-            >
+            <Link to="/home" className="px-4 py-2 text-indigo-100 hover:text-white">
               View Site
             </Link>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-500 transition"
+              className="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-500"
             >
               Logout
             </button>
@@ -102,8 +106,8 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      {/* Main */}
+      <main className="max-w-6xl mx-auto px-6 py-8 w-full">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Users Card */}
@@ -226,6 +230,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </main>
+
+      {/* ❌ Footer removed (was causing crash) */}
     </div>
   );
 }

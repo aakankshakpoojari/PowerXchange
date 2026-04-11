@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
 
 function Login({ onLogin }) {
   const navigate = useNavigate();
@@ -45,12 +47,14 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar isLoggedIn={false} />
+      <div className="flex-1 flex items-center justify-center py-12">
+        <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
 
-        <h1 className="text-2xl font-bold text-indigo-600 mb-2">PowerXchange</h1>
-        <h2 className="text-xl font-semibold text-gray-800 mb-1">Welcome back!</h2>
-        <p className="text-gray-500 text-sm mb-6">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-indigo-600 mb-2">PowerXchange</h1>
+          <h2 className="text-xl font-semibold text-gray-800 mb-1">Welcome back!</h2>
+          <p className="text-gray-500 text-sm mb-6">Sign in to your account</p>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-2 mb-4">
@@ -102,7 +106,9 @@ function Login({ onLogin }) {
           </span>
         </p>
 
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 
 export default function AdminBooks() {
+  const navigate = useNavigate(); // ✅ added
+
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -18,7 +20,6 @@ export default function AdminBooks() {
   async function fetchBooks() {
     setLoading(true);
 
-    // First try without the profiles join to see if books exist
     let query = supabase.from("books").select("*");
 
     if (filter === "approved") {
@@ -91,16 +92,24 @@ export default function AdminBooks() {
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-indigo-700 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <Link to="/admin" className="text-indigo-200 hover:text-white">&larr; Back to Dashboard</Link>
-          <h1 className="text-2xl font-bold">Book Management</h1>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div>
+            <Link to="/admin" className="text-indigo-200 hover:text-white">&larr; Back to Dashboard</Link>
+            <h1 className="text-2xl font-bold">Book Management</h1>
+          </div>
+          <button
+            onClick={() => { supabase.auth.signOut(); navigate("/"); }}
+            className="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-500 transition text-sm"
+          >
+            Logout
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-6 py-8 w-full">
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center w-full">
           <div className="flex gap-2">
             <button
               onClick={() => setFilter("all")}
@@ -143,7 +152,7 @@ export default function AdminBooks() {
         </div>
 
         {/* Books Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {filteredBooks.length === 0 ? (
             <div className="col-span-full bg-white rounded-xl shadow-md p-8 text-center text-gray-500">
               No books found
