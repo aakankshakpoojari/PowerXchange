@@ -3,7 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 
 export default function AdminTransactions() {
+<<<<<<< Updated upstream
   const navigate = useNavigate();
+=======
+  const navigate = useNavigate(); // ✅ FIX
+
+>>>>>>> Stashed changes
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
@@ -29,9 +34,7 @@ export default function AdminTransactions() {
     query = query.order("created_at", { ascending: false });
 
     const { data, error } = await query;
-    if (!error) {
-      setTransactions(data);
-    }
+    if (!error) setTransactions(data);
     setLoading(false);
   }
 
@@ -41,9 +44,7 @@ export default function AdminTransactions() {
       .update({ status })
       .eq("id", transactionId);
 
-    if (!error) {
-      fetchTransactions();
-    }
+    if (!error) fetchTransactions();
   }
 
   if (loading) {

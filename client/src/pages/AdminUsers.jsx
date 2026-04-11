@@ -54,6 +54,11 @@ export default function AdminUsers() {
     setShowModal(true);
   }
 
+  function viewUserDetails(user) {
+    setSelectedUser(user);
+    setShowModal(true);
+  }
+
   async function handleVerify(userId, isVerified) {
     setActionLoading(true);
     const { error } = await supabase
@@ -127,6 +132,9 @@ export default function AdminUsers() {
         </div>
       </header>
 
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto px-6 py-8 w-full">
+        {/* (everything same, unchanged) */}
       <main className="max-w-7xl mx-auto px-6 py-8 w-full">
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -276,6 +284,7 @@ export default function AdminUsers() {
         </div>
       </main>
 
+      {/* User Details Modal */}
       {/* User Details Modal */}
       {showModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">

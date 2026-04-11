@@ -96,20 +96,27 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
+      {/* Header */}
       <header className="bg-indigo-700 text-white shadow-lg">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-indigo-200 text-sm">
               Welcome, {admin?.full_name || admin?.email || "Admin"}
             </p>
+            <p className="text-indigo-200 text-sm">
+              Welcome, {admin?.full_name || admin?.email || "Admin"}
+            </p>
           </div>
           <div className="flex gap-4">
+            <Link to="/home" className="px-4 py-2 text-indigo-100 hover:text-white">
             <Link to="/home" className="px-4 py-2 text-indigo-100 hover:text-white">
               View Site
             </Link>
             <button
               onClick={handleLogout}
+              className="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-500"
               className="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-500"
             >
               Logout
