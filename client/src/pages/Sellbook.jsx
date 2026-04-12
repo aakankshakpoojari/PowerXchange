@@ -35,6 +35,7 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     title: "", author: "", genre: "", condition: "",
     price: "", description: "", name: "", phone: "",
     email: "", address: "", city: "", pincode: "",
+    quantity: "1",
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -82,7 +83,7 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     setImagePreview(null);
     setSelectedAuthor(null);
     setAuthorQuery("");
-    setForm({ title: "", author: "", genre: "", condition: "", price: "", description: "", name: "", phone: "", email: "", address: "", city: "", pincode: "" });
+    setForm({ title: "", author: "", genre: "", condition: "", price: "", description: "", name: "", phone: "", email: "", address: "", city: "", pincode: "", quantity: "1" });
   };
 
   const uploadImage = async (file) => {
@@ -191,8 +192,9 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
           price: parseFloat(form.price) || 0,
           description: form.description,
           image_url: image_url,
+          quantity: parseInt(form.quantity) || 1,
           is_approved: false,
-          is_available: true,
+          is_available: (parseInt(form.quantity) || 1) > 0,
         });
 
       if (error) throw error;
@@ -580,24 +582,39 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
           {/* Pricing */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-widest mb-4">
-              Pricing
+              Pricing & Stock
             </h2>
-            <div className="max-w-xs">
-              <label className={labelClass}>Asking Price (Rs.)</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
-                  Rs.
-                </span>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Asking Price (Rs.)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
+                    Rs.
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">Set to 0 for exchange only.</p>
+              </div>
+
+              <div>
+                <label className={labelClass}>Quantity Available</label>
                 <input
                   type="number"
                   min="0"
-                  placeholder="0"
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition"
+                  placeholder="1"
+                  value={form.quantity}
+                  onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition"
                 />
+                <p className="text-xs text-gray-400 mt-1.5">Set to 0 for out of stock.</p>
               </div>
-              <p className="text-xs text-gray-400 mt-1.5">Set to 0 for exchange only.</p>
             </div>
           </section>
 

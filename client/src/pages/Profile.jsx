@@ -176,8 +176,14 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
           </div>
           <div className="ml-auto flex gap-2">
             <button
-              onClick={() => navigate("/sellbook")}
+              onClick={() => navigate("/my-books")}
               className="text-sm bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold rounded-lg px-4 py-2 hover:scale-105 transition shadow-sm shadow-blue-200"
+            >
+              Manage My Books
+            </button>
+            <button
+              onClick={() => navigate("/sellbook")}
+              className="text-sm border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition"
             >
               + Sell a Book
             </button>
@@ -217,10 +223,19 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
                   </div>
                   <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{book.author}</p>
-                  <span className={`inline-block mt-2 text-xs px-2.5 py-0.5 rounded-md ${book.is_available ? statusStyles.available : statusStyles.sold}`}>
-                    {book.is_available ? "available" : "sold"}
-                  </span>
-                  {book.is_available && (
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-gray-500">Stock: {(book.quantity || 0)}</span>
+                    <span className={`inline-block text-xs px-2.5 py-0.5 rounded-md ${
+                      !book.is_available || (book.quantity || 0) === 0
+                        ? "bg-red-100 text-red-700"
+                        : book.quantity <= 3
+                        ? "bg-amber-100 text-amber-700"
+                        : statusStyles.available
+                    }`}>
+                      {!book.is_available || (book.quantity || 0) === 0 ? "Out of stock" : book.quantity <= 3 ? "Low stock" : "Available"}
+                    </span>
+                  </div>
+                  {book.is_available && (book.quantity || 0) > 0 && (
                     <button onClick={() => handleBuy(book)}
                       className="mt-3 w-full bg-indigo-600 text-white text-xs py-1.5 rounded-lg hover:bg-indigo-700 transition">
                       Buy Book

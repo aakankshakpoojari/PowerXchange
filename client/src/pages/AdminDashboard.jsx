@@ -14,6 +14,8 @@ export default function AdminDashboard() {
     pendingBooks: 0,
     totalAuthors: 0,
     pendingAuthors: 0,
+    totalReports: 0,
+    pendingReports: 0,
   });
   const [recentUsers, setRecentUsers] = useState([]);
   const [pendingVerifications, setPendingVerifications] = useState([]);
@@ -44,7 +46,9 @@ export default function AdminDashboard() {
       pendingUsersRes,
       authorsCountRes,
       pendingAuthorsRes,
-      pendingAuthorsListRes
+      pendingAuthorsListRes,
+      reportsCountRes,
+      pendingReportsRes
     ] = await Promise.all([
       supabase.from("profiles").select("full_name, email, role").eq("id", user.id).single(),
       supabase.from("profiles").select("*", { count: "exact", head: true }),
@@ -56,6 +60,8 @@ export default function AdminDashboard() {
       supabase.from("authors").select("*", { count: "exact", head: true }),
       supabase.from("authors").select("*", { count: "exact", head: true }).eq("is_approved", false),
       supabase.from("authors").select("id, name, genre, created_at").eq("is_approved", false).order("created_at", { ascending: false }).limit(5),
+      supabase.from("reports").select("*", { count: "exact", head: true }),
+      supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
     ]);
 
     if (profileRes.error || !profileRes.data || profileRes.data.role !== "admin") {
@@ -73,6 +79,8 @@ export default function AdminDashboard() {
       pendingBooks: 0,
       totalAuthors: authorsCountRes.count || 0,
       pendingAuthors: pendingAuthorsRes.count || 0,
+      totalReports: reportsCountRes.count || 0,
+      pendingReports: pendingReportsRes.count || 0,
     });
     setRecentUsers(recentUsersRes.data || []);
     setPendingVerifications(pendingUsersRes.data || []);
@@ -152,6 +160,21 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Reports Stats Card */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-700">Reports</h3>
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21a2 2 0 012 2v3m-13 4V8a2 2 0 00-2-2H3a2 2 0 00-2 2v13a2 2 0 002 2h11a2 2 0 002-2v-6a2 2 0 00-2-2H7" />
+              </svg>
+            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.totalReports}</p>
+            <div className="mt-4 flex gap-4 text-sm">
+              <span className="text-amber-600">{stats.pendingReports} pending</span>
+              <span className="text-green-600">{stats.totalReports - stats.pendingReports} resolved</span>
+            </div>
+          </div>
+
           {/* Quick Actions Card */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h3>
@@ -179,6 +202,12 @@ export default function AdminDashboard() {
                 className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition text-sm font-medium"
               >
                 View Transactions
+              </Link>
+              <Link
+                to="/admin/reports"
+                className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+              >
+                View Reports
               </Link>
             </div>
           </div>

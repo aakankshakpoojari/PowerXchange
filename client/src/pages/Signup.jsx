@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { Eye, EyeOff } from "lucide-react";
 
 function Signup() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ function Signup() {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [idCardPreview, setIdCardPreview] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const uploadImage = async (file, folder) => {
     const fileExt = file.name.split('.').pop();
@@ -112,7 +114,7 @@ function Signup() {
             role: 'user',
             status: 'pending',
             photo_url: photoUrl,
-            id_card_url: idCardUrl
+            id_card_url: idCardUrl,
           }, {
             onConflict: 'id'
           });
@@ -216,14 +218,23 @@ function Signup() {
 
           <div>
             <label className="text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              placeholder="Create a password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
+            <div className="relative mt-1">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           {/* Person Photo Upload */}

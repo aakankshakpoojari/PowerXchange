@@ -109,17 +109,6 @@ export const GENRES = [
   { name: "Self Help",    img: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=200&h=200&fit=crop" },
 ];
 
-const newArrivals = [
-  { id: "na-1", title: "Atomic Habits",     img: "https://covers.openlibrary.org/b/isbn/9780735211292-M.jpg" },
-  { id: "na-2", title: "The Alchemist",     img: "https://covers.openlibrary.org/b/isbn/9780062315007-M.jpg" },
-  { id: "na-3", title: "Ikigai",            img: "https://covers.openlibrary.org/b/isbn/9780143130727-M.jpg" },
-  { id: "na-4", title: "Sapiens",           img: "https://covers.openlibrary.org/b/isbn/9780062316097-M.jpg" },
-  { id: "na-5", title: "Rich Dad Poor Dad", img: "https://covers.openlibrary.org/b/isbn/9781612680194-M.jpg" },
-  { id: "na-6", title: "Deep Work",         img: "https://covers.openlibrary.org/b/isbn/9781455586691-M.jpg" },
-  { id: "na-7", title: "Think & Grow Rich", img: "https://covers.openlibrary.org/b/isbn/9781585424337-M.jpg" },
-  { id: "na-8", title: "The 5 AM Club",     img: "https://covers.openlibrary.org/b/isbn/9781443456463-M.jpg" },
-];
-
 const kidsBooks = [
   { id: "k-1", title: "Goodnight Moon",            img: "https://covers.openlibrary.org/b/isbn/9780064430173-M.jpg" },
   { id: "k-2", title: "Where the Wild Things Are", img: "https://covers.openlibrary.org/b/isbn/9780064431781-M.jpg" },
@@ -463,27 +452,19 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
   const genreRef  = useRef(null);
   const [dbBooks, setDbBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [newArrivalsQueue, setNewArrivalsQueue] = useState([]);
+  const [trendingBooks, setTrendingBooks] = useState([]);
 
   const params      = new URLSearchParams(location.search);
   const searchQuery = params.get("q") || "";
 
-  // Fetch books from database on mount
+  // Fetch all books for general display
   useEffect(() => {
     const fetchBooks = async () => {
       const { supabase } = await import("../supabase");
       const { data, error } = await supabase
         .from("books")
-        .select(`
-          *,
-          authors (
-            id,
-            name,
-            is_approved
-          )
-        `)
-        .eq("is_approved", true)
-        .eq("is_available", true)
-        .eq("authors.is_approved", true)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (!error && data) {
@@ -493,6 +474,90 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
     };
 
     fetchBooks();
+  }, []);
+
+  // Fetch new arrivals queue: latest 20 books by date added
+  useEffect(() => {
+    const fetchNewArrivals = async () => {
+      const { supabase } = await import("../supabase");
+      const { data, error } = await supabase
+        .from("books")
+        .select("id, title, image_url, cover_url")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (!error && data) {
+        const queue = data.map(b => ({
+          id: b.id,
+          title: b.title,
+          img: b.image_url || b.cover_url || "https://placehold.co/200x160?text=Book"
+        }));
+        setNewArrivalsQueue(queue);
+      }
+    };
+
+    fetchNewArrivals();
+  }, []);
+
+  // Fetch trending books: top 10 by sales, views, ratings (with fallback)
+  useEffect(() => {
+    const fetchTrendingBooks = async () => {
+      const { supabase } = await import("../supabase");
+
+      // First, try to get books with statistics (trending score)
+      const { data: statsData, error: statsError } = await supabase
+        .from("book_statistics")
+        .select(`
+          trending_score,
+          books (
+            id,
+            title,
+            image_url,
+            cover_url,
+            is_approved,
+            is_available,
+            quantity
+          )
+        `)
+        .order("trending_score", { ascending: false })
+        .limit(30); // fetch more, filter client-side
+
+      if (!statsError && statsData && statsData.length > 0) {
+        // Filter to only in-stock books
+        const trending = statsData
+          .filter(s => s.books && s.books.quantity > 0)
+          .slice(0, 10)
+          .map(s => ({
+            id: s.books.id,
+            title: s.books.title,
+            img: s.books.image_url || s.books.cover_url || "https://placehold.co/200x160?text=Book",
+            trendingScore: s.trending_score
+          }));
+
+        if (trending.length > 0) {
+          setTrendingBooks(trending);
+          return;
+        }
+      }
+
+      // No statistics data - fallback to recently added books
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("books")
+        .select("id, title, image_url, cover_url")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (!fallbackError && fallbackData) {
+        const fallback = fallbackData.map(b => ({
+          id: b.id,
+          title: b.title,
+          img: b.image_url || b.cover_url || "https://placehold.co/200x160?text=Book"
+        }));
+        setTrendingBooks(fallback);
+      }
+    };
+
+    fetchTrendingBooks();
   }, []);
 
   // Use database books if available, otherwise fallback to hardcoded
@@ -510,7 +575,8 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
     seller: { name: b.seller_name || "Unknown", college: "N/A" },
   })) : BOOKS;
 
-  const trending = booksToUse.map(b => ({ id: b.id, title: b.title, img: b.imageUrl || b.cover_url }));
+  // trending is now fetched from database based on sales, views, ratings
+  // falls back to recently added books if no statistics exist
 
   return (
     <div className="min-h-screen bg-blue-50 font-sans">
@@ -563,9 +629,9 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
                 <div className="text-center py-20 text-gray-500">Loading books...</div>
               ) : (
                 <>
-                  <BookGridSlider  title="Trending Now"               data={trending}     onBookClick={(id) => navigate(`/books/${id}`)} />
-                  <BookRowSlider   title="New Arrivals"               data={newArrivals}  onBookClick={(id) => navigate(`/books/${id}`)} />
-                  <ConditionSlider title="Choose Your Book Condition" data={conditionData} onConditionClick={(cond) => navigate(`/condition/${encodeURIComponent(cond)}`)} />
+                  <BookGridSlider  title="Trending Now"               data={trendingBooks}   onBookClick={(id) => navigate(`/books/${id}`)} />
+                  <BookRowSlider   title="New Arrivals"               data={newArrivalsQueue} onBookClick={(id) => navigate(`/books/${id}`)} />
+                  <ConditionSlider title="Choose Your Book Condition" data={conditionData}   onConditionClick={(cond) => navigate(`/condition/${encodeURIComponent(cond)}`)} />
                 </>
               )}
             </>

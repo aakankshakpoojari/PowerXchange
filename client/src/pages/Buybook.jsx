@@ -74,8 +74,18 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist }) {
       return;
     }
 
-    // Create a transaction record
-    const { error } = await supabase.from("transactions").insert({
+    // Check if book is still available with stock
+    if (!book.is_available || (book.quantity || 0) <= 0) {
+      alert("Sorry, this book is currently out of stock.");
+      navigate("/home");
+      return;
+    }
+
+    // Decrement quantity by 1 (auto-sets is_available to false if quantity becomes 0)
+    const newQuantity = (book.quantity || 1) - 1;
+
+    // Create a transaction record and update book quantity
+    const { error: transactionError } = await supabase.from("transactions").insert({
       book_id: book.id,
       buyer_id: user.id,
       seller_id: book.seller_id,
@@ -84,11 +94,33 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist }) {
       notes: message,
     });
 
-    if (error) {
-      alert("Error sending request: " + error.message);
-    } else {
-      setSubmitted(true);
+    if (transactionError) {
+      alert("Error sending request: " + transactionError.message);
+      return;
     }
+
+    // Update book quantity (trigger will auto-set is_available = false if quantity = 0)
+    const { error: updateError } = await supabase
+      .from("books")
+      .update({
+        quantity: newQuantity,
+        // is_available will be auto-set by database trigger
+      })
+      .eq("id", book.id);
+
+    if (updateError) {
+      console.error("Error updating quantity:", updateError.message);
+      // Don't block the user - transaction was successful
+    }
+
+    // Increment sales count for trending calculation
+    try {
+      await supabase.rpc('increment_book_sales', { p_book_id: book.id });
+    } catch (err) {
+      console.error("Error incrementing sales:", err);
+    }
+
+    setSubmitted(true);
   };
 
   return (

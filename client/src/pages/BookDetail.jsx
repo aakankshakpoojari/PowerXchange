@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import Reviews from "../components/Reviews";
+import ReportModal from "../components/ReportModal";
+import { Flag } from "lucide-react";
 
 const CONDITION_STYLES = {
   new:        { label: "New",        classes: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -15,12 +18,14 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
   const navigate = useNavigate();
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     const fetchBook = async () => {
       const { data, error } = await supabase
         .from("books")
-        .select("*, profiles(full_name, email, college)")
+        .select("*, profiles(name, email, college)")
         .eq("id", id)
         .single();
 
@@ -31,16 +36,53 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
           listingType: data.price === 0 ? "exchange" : "sell",
           genre: data.genre || data.category || "General",
           available: data.is_available,
-          seller_name: data.seller_name || data.profiles?.full_name || "Seller",
+          seller_name: data.seller_name || data.profiles?.name || "Seller",
           seller_email: data.seller_email || data.profiles?.email,
           seller_college: data.profiles?.college,
         });
+      } else {
+        // Fallback: fetch without the join in case profiles RLS blocks it
+        const { data: bookOnly } = await supabase
+          .from("books")
+          .select("*")
+          .eq("id", id)
+          .single();
+        if (bookOnly) {
+          setBook({
+            ...bookOnly,
+            imageUrl: bookOnly.image_url || "https://placehold.co/260x380?text=Book",
+            listingType: bookOnly.price === 0 ? "exchange" : "sell",
+            genre: bookOnly.genre || bookOnly.category || "General",
+            available: bookOnly.is_available,
+            seller_name: bookOnly.seller_name || "Seller",
+          });
+        }
       }
       setLoading(false);
     };
 
     fetchBook();
+
+    // Increment view count for trending calculation
+    const incrementView = async () => {
+      try {
+        await supabase.rpc('increment_book_view', { p_book_id: id });
+      } catch (err) {
+        console.error("Error incrementing view:", err);
+      }
+    };
+    incrementView();
   }, [id]);
+
+  // Fetch current user
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+
+    getCurrentUser();
+  }, []);
 
   if (loading) {
     return (
@@ -146,11 +188,19 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
 
             {/* Actions */}
             <div className="flex flex-col gap-2.5 pt-1">
-              <button
-                onClick={() => navigate(`/buybook/${book.id}`)}
-                className="w-full py-3.5 rounded-xl font-semibold text-base bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200">
-                {book.price > 0 ? "Buy Now" : "Contact Seller"}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate(`/buybook/${book.id}`)}
+                  className="flex-1 py-3.5 rounded-xl font-semibold text-base bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200">
+                  {book.price > 0 ? "Buy Now" : "Contact Seller"}
+                </button>
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="p-3.5 rounded-xl border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all duration-200"
+                  title="Report this book">
+                  <Flag size={20} />
+                </button>
+              </div>
               <button
                 onClick={() => {
                   const bookData = {
@@ -197,7 +247,16 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
         {/* ── Seller Contact Info ── */}
         {(book.seller_phone || book.seller_address) && (
           <section className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-4">Seller Contact Information</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-blue-400">Seller Contact Information</h2>
+              <button
+                onClick={() => setShowReportModal(true)}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-600 transition"
+              >
+                <Flag size={14} />
+                Report Seller
+              </button>
+            </div>
             <div className="space-y-2 text-base">
               {book.seller_phone && (
                 <p className="text-slate-700">
@@ -220,7 +279,21 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
             </div>
           </section>
         )}
+
+        {/* ── Reviews Section ── */}
+        <Reviews bookId={book.id} currentUser={currentUser} />
       </main>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportType="book"
+        targetId={book.id}
+        targetName={book.title}
+        currentUser={currentUser}
+      />
+
       <Footer />
     </div>
   );

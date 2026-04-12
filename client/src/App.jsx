@@ -3,8 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing    from "./pages/Landing";
 import Login      from "./pages/Login";
 import Signup     from "./pages/Signup";
+import ResetPassword from "./pages/ResetPassword";
 import HomePage   from "./pages/HomePage";
 import Profile    from "./pages/Profile";
+import MyBooks    from "./pages/MyBooks";
 import BookDetail from "./pages/BookDetail";
 import BuyBook    from "./pages/Buybook";
 import AuthorPage from "./pages/AuthorPage";
@@ -17,6 +19,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminBooks from "./pages/AdminBooks";
 import AdminTransactions from "./pages/AdminTransactions";
 import AdminAuthors from "./pages/AdminAuthors";
+import AdminReports from "./pages/AdminReports";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -40,9 +43,11 @@ export default function App() {
         <Route path="/"            element={<Landing    {...sharedProps} />} />
         <Route path="/login"       element={<Login      onLogin={handleLogin} />} />
         <Route path="/signup"      element={<Signup />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/home"        element={guard(<HomePage   {...sharedProps} />)} />
         <Route path="/browse"      element={guard(<HomePage   {...sharedProps} />)} />
         <Route path="/profile"     element={guard(<Profile    {...sharedProps} />)} />
+        <Route path="/my-books"    element={guard(<MyBooks    {...sharedProps} />)} />
         <Route path="/books/:id"   element={guard(<BookDetail {...sharedProps} />)} />
         <Route path="/buybook/:id"     element={guard(<BuyBook  {...sharedProps} />)} />
         <Route path="/author/:id"  element={guard(<AuthorPage {...sharedProps} />)} />
@@ -55,6 +60,7 @@ export default function App() {
         <Route path="/admin/books" element={guard(<AdminBooks {...sharedProps} />)} />
         <Route path="/admin/authors" element={guard(<AdminAuthors {...sharedProps} />)} />
         <Route path="/admin/transactions" element={guard(<AdminTransactions {...sharedProps} />)} />
+        <Route path="/admin/reports" element={guard(<AdminReports {...sharedProps} />)} />
         <Route path="*"            element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

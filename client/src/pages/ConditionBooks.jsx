@@ -28,6 +28,7 @@ export default function ConditionBooks({ isLoggedIn, onLogout, cart, wishlist })
       `)
       .eq("is_approved", true)
       .eq("is_available", true)
+      .gt("quantity", 0)
       .eq("authors.is_approved", true)
       .eq("condition", condition)
       .order("created_at", { ascending: false });

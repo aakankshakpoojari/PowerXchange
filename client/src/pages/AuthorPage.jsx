@@ -33,7 +33,8 @@ export default function AuthorPage({ isLoggedIn, onLogout }) {
           .select("*")
           .eq("author_id", id)
           .eq("is_approved", true)
-          .eq("is_available", true);
+          .eq("is_available", true)
+          .gt("quantity", 0);
 
         if (!booksError && booksData) {
           setAuthorBooks(booksData);

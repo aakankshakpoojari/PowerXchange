@@ -34,6 +34,7 @@ export default function GenrePage({ isLoggedIn, onLogout, cart, wishlist, addToC
       `)
       .eq("is_approved", true)
       .eq("is_available", true)
+      .gt("quantity", 0)
       .eq("authors.is_approved", true)
       .ilike("genre", genreName);
 
