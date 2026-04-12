@@ -26,12 +26,9 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
     name: "",
     email: "",
     college: "",
-    location: "",
-    bio: "",
   });
   const [draft, setDraft] = useState(form);
   const [userId, setUserId] = useState(null);
-  const [photoUrl, setPhotoUrl] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
@@ -53,15 +50,12 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
 
       if (profileData) {
         const userData = {
-          name: profileData.full_name || profileData.name || user.user_metadata?.full_name || "User",
+          name: profileData.full_name || user.user_metadata?.full_name || "User",
           email: profileData.email || user.email || "",
           college: profileData.college || user.user_metadata?.college || "",
-          location: profileData.location || "",
-          bio: profileData.bio || "",
         };
         setForm(userData);
         setDraft(userData);
-        setPhotoUrl(profileData.photo_url || null);
       }
 
       // Fetch user's listed books
@@ -137,7 +131,6 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
     setSaving(true);
     setSaveMessage("");
 
-    // Always re-fetch the current session to ensure userId is available
     const { data: { session } } = await supabase.auth.getSession();
     const uid = userId || session?.user?.id;
 
@@ -151,11 +144,7 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
       .from("profiles")
       .update({
         full_name: draft.name,
-        name: draft.name,
         college: draft.college,
-        location: draft.location,
-        bio: draft.bio,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", uid);
 
@@ -177,15 +166,12 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
 
         {/* Profile Hero */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 flex items-center gap-5 mb-6">
-          <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-medium shrink-0 overflow-hidden border-2 border-blue-200">
-            {photoUrl
-              ? <img src={photoUrl} alt={form.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display='none'; e.target.parentNode.innerHTML = `<span class="text-xl font-medium">${(form.name||'U')[0].toUpperCase()}</span>`; }} />
-              : <span>{form.name ? form.name[0].toUpperCase() : "U"}</span>
-            }
+          <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-medium shrink-0">
+            {form.name ? form.name[0].toUpperCase() : "U"}
           </div>
           <div>
             <p className="text-lg font-medium text-gray-900">{form.name || "Loading..."}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{form.email} {form.location ? `· ${form.location}` : ""}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{form.email}</p>
             <div className="flex gap-5 mt-2">
               <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">{stats.listed}</span> listed</span>
               <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">{stats.exchanged}</span> exchanged</span>
@@ -339,10 +325,9 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
               </div>
             )}
             {[
-              { label: "Full name",             key: "name",     type: "text"  },
-              { label: "Email",                 key: "email",    type: "email", disabled: true },
-              { label: "College / Institution", key: "college",  type: "text"  },
-              { label: "Location",              key: "location", type: "text"  },
+              { label: "Full name",             key: "name",    type: "text"  },
+              { label: "Email",                 key: "email",   type: "email", disabled: true },
+              { label: "College / Institution", key: "college", type: "text"  },
             ].map(({ label, key, type, disabled }) => (
               <div key={key} className="mb-5">
                 <label className="text-xs text-gray-500 block mb-1.5">{label}</label>
@@ -357,15 +342,6 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
                 />
               </div>
             ))}
-            <div className="mb-5">
-              <label className="text-xs text-gray-500 block mb-1.5">Bio</label>
-              <textarea
-                rows={3}
-                value={draft.bio}
-                onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-300 resize-none"
-              />
-            </div>
             <div className="flex gap-3">
               <button
                 onClick={handleSaveProfile}
