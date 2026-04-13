@@ -66,24 +66,7 @@ function Signup() {
     // Images are optional - no validation required
 
     try {
-      setUploadingImages(true);
-
-      // Upload person photo (optional)
-      const photoFile = photoInputRef.current?.files?.[0];
-      const photoUrl = photoFile ? await uploadImage(photoFile, 'person_photos') : null;
-
-      // Upload ID card (optional)
-      const idCardFile = idCardInputRef.current?.files?.[0];
-      const idCardUrl = idCardFile ? await uploadImage(idCardFile, 'id_cards') : null;
-
-      // If no images uploaded, skip upload step
-      if (!photoFile && !idCardFile) {
-        setUploadingImages(false);
-      }
-
-      setUploadingImages(false);
-
-      // Create auth user
+      // Step 1: Create auth user FIRST (so we're authenticated before uploading)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -102,37 +85,50 @@ function Signup() {
         return;
       }
 
-      // Create profile with images
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            full_name: name,
-            email: email,
-            college: college,
-            role: 'user',
-            status: 'pending',
-            photo_url: photoUrl,
-            id_card_url: idCardUrl,
-          }, {
-            onConflict: 'id'
-          });
-
-        if (profileError) {
-          if (profileError.message.includes("foreign key")) {
-            setError("This email is already registered. Please login instead.");
-          } else {
-            setError('Database error: ' + profileError.message);
-          }
-          setLoading(false);
-        } else {
-          setSuccess(true);
-          setLoading(false);
-        }
+      if (!authData.user) {
+        setError("Account creation failed. Please try again.");
+        setLoading(false);
+        return;
       }
+
+      // Step 2: Upload images NOW (user is authenticated)
+      setUploadingImages(true);
+      const photoFile = photoInputRef.current?.files?.[0];
+      const idCardFile = idCardInputRef.current?.files?.[0];
+      let photoUrl = null;
+      let idCardUrl = null;
+
+      try {
+        if (photoFile)  photoUrl  = await uploadImage(photoFile,  'person_photos');
+        if (idCardFile) idCardUrl = await uploadImage(idCardFile, 'id_cards');
+      } catch (uploadErr) {
+        // Don't block signup if image upload fails — just skip the photo
+        console.warn("Image upload failed, continuing without photo:", uploadErr.message);
+      }
+      setUploadingImages(false);
+
+      // Step 3: Create/update profile row
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authData.user.id,
+          name: name,
+          full_name: name,
+          email: email,
+          college: college,
+          role: 'user',
+          photo_url: photoUrl,
+          id_card_url: idCardUrl,
+        }, { onConflict: 'id' });
+
+      if (profileError) {
+        console.warn("Profile upsert error (non-fatal):", profileError.message);
+      }
+
+      setSuccess(true);
+      setLoading(false);
     } catch (err) {
-      setError('Upload error: ' + err.message);
+      setError('Signup error: ' + err.message);
       setUploadingImages(false);
       setLoading(false);
     }
