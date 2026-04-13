@@ -37,8 +37,6 @@ export default function TransactionDetail({ isLoggedIn, onLogout, cart, wishlist
 
       if (error || !data) {
         console.error("Error fetching transaction:", error);
-        setLoading(false);
-        return;
       }
 
       // Only allow buyer or seller to view

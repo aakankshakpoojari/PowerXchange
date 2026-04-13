@@ -46,7 +46,7 @@ export default function AdminReports() {
     if (filter === "dismissed") query = query.eq("status", "dismissed");
 
     const { data, error } = await query;
-    if (error) { console.error(error); setLoading(false); return; }
+    if (error) { console.error("Error fetching reports:", error); setLoading(false); return; }
 
     const reportsData = data || [];
     if (reportsData.length > 0) {

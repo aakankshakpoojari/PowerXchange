@@ -187,7 +187,12 @@ export default function App() {
   const requireAdmin = (el) => authState === "admin" ? el : isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />;
 
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <Routes>
         <Route path="/"            element={<Landing    {...sharedProps} />} />
         <Route path="/login"       element={<Login      onLogin={() => {}} />} />

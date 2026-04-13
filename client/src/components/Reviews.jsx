@@ -66,8 +66,6 @@ export default function Reviews({ bookId, currentUser }) {
 
     if (error) {
       console.error("Error fetching reviews:", error);
-      setLoading(false);
-      return;
     }
 
     // Fetch profile names separately for each unique user

@@ -34,7 +34,6 @@ export default function AdminBooks() {
 
     if (error) {
       console.error("Error fetching books:", error);
-      alert("Error loading books: " + error.message);
     } else {
       console.log("Fetched books:", data);
       setBooks(data || []);

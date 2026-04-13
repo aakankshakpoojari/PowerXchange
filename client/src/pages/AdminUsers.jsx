@@ -28,7 +28,7 @@ export default function AdminUsers() {
       if (profileError || !profileData || profileData.role !== "admin") { navigate("/home"); return; }
       await fetchUsers();
     } catch (err) {
-      console.error("Auth error:", err);
+      console.error("Auth check error:", err);
       setLoading(false);
     }
   }
@@ -42,10 +42,10 @@ export default function AdminUsers() {
       else if (filter === "blocked") query = query.eq("is_blocked", true);
       query = query.order("created_at", { ascending: false });
       const { data, error } = await query;
-      if (error) console.error("Fetch error:", error.message);
+      if (error) console.error("Error fetching users:", error);
       else setUsers(data || []);
     } catch (err) {
-      console.error("Unexpected error:", err);
+      console.error("Unexpected fetch error:", err);
     }
     setLoading(false);
   }
