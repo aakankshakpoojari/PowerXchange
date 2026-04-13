@@ -1,9 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase";
 
 export default function Navbar({ isLoggedIn, onLogout, cart = [], wishlist = [] }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Poll for unread notifications
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const fetchUnread = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { count, error } = await supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false);
+
+        if (!error && count !== null) {
+          setUnreadCount(count);
+        }
+      } catch {
+        // notifications table might not exist yet, silently ignore
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000); // poll every 30s
+
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -58,6 +89,12 @@ export default function Navbar({ isLoggedIn, onLogout, cart = [], wishlist = [] 
               Sell
             </button>
 
+            {/* Orders link */}
+            <button onClick={() => navigate("/orders")}
+              className="text-sm text-slate-500 font-medium hover:text-blue-600 transition-colors">
+              Orders
+            </button>
+
             {/* Cart badge */}
             <button onClick={() => navigate("/cart")}
               className="relative text-slate-500 hover:text-blue-600 transition-colors">
@@ -80,6 +117,19 @@ export default function Navbar({ isLoggedIn, onLogout, cart = [], wishlist = [] 
               {wishlist.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {wishlist.length}
+                </span>
+              )}
+            </button>
+
+            {/* Notification bell */}
+            <button onClick={() => navigate("/orders")}
+              className="relative text-slate-500 hover:text-amber-500 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                  {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </button>

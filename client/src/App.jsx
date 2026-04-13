@@ -23,6 +23,8 @@ import AdminAuthors from "./pages/AdminAuthors";
 import AdminReports from "./pages/AdminReports";
 import CartPage from "./pages/CartPage";
 import WishlistPage from "./pages/WishlistPage";
+import OrdersPage from "./pages/OrdersPage";
+import TransactionDetail from "./pages/TransactionDetail";
 
 export default function App() {
   const [authState, setAuthState] = useState("loading");
@@ -204,6 +206,8 @@ export default function App() {
         <Route path="/sellbook"    element={requireAuth(<SellBook   {...sharedProps} />)} />
         <Route path="/cart"        element={requireAuth(<CartPage   {...sharedProps} />)} />
         <Route path="/wishlist"    element={requireAuth(<WishlistPage {...sharedProps} />)} />
+        <Route path="/orders"      element={requireAuth(<OrdersPage  {...sharedProps} />)} />
+        <Route path="/transaction/:id" element={requireAuth(<TransactionDetail {...sharedProps} />)} />
         <Route path="/admin"             element={requireAdmin(<AdminDashboard {...sharedProps} />)} />
         <Route path="/admin/users"       element={requireAdmin(<AdminUsers     {...sharedProps} />)} />
         <Route path="/admin/books"       element={requireAdmin(<AdminBooks     {...sharedProps} />)} />

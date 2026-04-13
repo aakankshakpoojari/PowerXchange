@@ -123,6 +123,29 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist }) {
       console.error("Error incrementing sales:", err);
     }
 
+    // Send notification to seller
+    if (book.seller_id) {
+      try {
+        // Fetch buyer name for the notification
+        const { data: buyerProfile } = await supabase
+          .from("profiles")
+          .select("full_name, name")
+          .eq("id", user.id)
+          .single();
+        const buyerName = buyerProfile?.full_name || buyerProfile?.name || "A buyer";
+
+        await supabase.from("notifications").insert({
+          user_id: book.seller_id,
+          type: mode === "exchange" ? "exchange_request" : "purchase_request",
+          title: mode === "exchange" ? "New Exchange Request! 📦" : "New Purchase Request! 🛒",
+          message: `${buyerName} wants to ${mode === "exchange" ? "exchange" : "buy"} your book "${book.title}". Check your incoming orders for details.`,
+          transaction_id: null, // We don't have the transaction id from the insert
+        });
+      } catch (err) {
+        console.error("Error sending notification:", err);
+      }
+    }
+
     setSubmitted(true);
   };
 
@@ -265,15 +288,23 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist }) {
             <p className="text-base font-semibold text-green-800">Request sent!</p>
             <p className="text-sm text-green-600 mt-1">
               {mode === "buy"
-                ? "The seller will get back to you soon."
+                ? "The seller has been notified and will get back to you soon."
                 : "Your exchange proposal has been sent to the seller."}
             </p>
-            <button
-              onClick={() => navigate("/home")}
-              className="mt-5 text-sm border border-gray-300 rounded-lg px-5 py-2 hover:bg-gray-50 transition"
-            >
-              Browse More Books
-            </button>
+            <div className="flex gap-3 justify-center mt-5">
+              <button
+                onClick={() => navigate("/orders")}
+                className="text-sm bg-blue-600 text-white rounded-lg px-5 py-2 hover:bg-blue-700 transition font-medium"
+              >
+                View My Orders
+              </button>
+              <button
+                onClick={() => navigate("/home")}
+                className="text-sm border border-gray-300 rounded-lg px-5 py-2 hover:bg-gray-50 transition"
+              >
+                Browse More Books
+              </button>
+            </div>
           </div>
         )}
 
