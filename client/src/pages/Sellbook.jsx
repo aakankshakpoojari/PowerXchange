@@ -91,19 +91,27 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `book_images/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
+    console.log("Starting upload:", { fileName, filePath, fileSize: file.size, fileType: file.type });
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('book-images')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      throw uploadError;
+    }
+
+    console.log("Upload successful:", uploadData);
 
     const { data: { publicUrl } } = supabase.storage
       .from('book-images')
       .getPublicUrl(filePath);
 
+    console.log("Public URL:", publicUrl);
     return publicUrl;
   };
 
@@ -139,19 +147,27 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `author_photos/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
+    console.log("Starting author photo upload:", { fileName, filePath });
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('book-images')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error("Author photo upload error:", uploadError);
+      throw uploadError;
+    }
+
+    console.log("Author photo upload successful:", uploadData);
 
     const { data: { publicUrl } } = supabase.storage
       .from('book-images')
       .getPublicUrl(filePath);
 
+    console.log("Author photo public URL:", publicUrl);
     return publicUrl;
   };
 
@@ -173,7 +189,13 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
       let image_url = null;
       const fileInput = fileInputRef.current;
       if (fileInput?.files?.[0]) {
-        image_url = await uploadImage(fileInput.files[0]);
+        try {
+          image_url = await uploadImage(fileInput.files[0]);
+        } catch (uploadErr) {
+          console.error("Image upload failed:", uploadErr);
+          alert(`Image upload failed: ${uploadErr.message}. Your book will be listed without an image.`);
+          // Continue without image
+        }
       }
 
       const { data, error } = await supabase
@@ -216,7 +238,13 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     try {
       let photoUrl = null;
       if (authorPhotoFile) {
-        photoUrl = await uploadAuthorPhoto(authorPhotoFile);
+        try {
+          photoUrl = await uploadAuthorPhoto(authorPhotoFile);
+        } catch (uploadErr) {
+          console.error("Author photo upload failed:", uploadErr);
+          alert(`Author photo upload failed: ${uploadErr.message}. Continuing without photo.`);
+          // Continue without photo
+        }
       }
 
       // Check one more time in case author was created between steps

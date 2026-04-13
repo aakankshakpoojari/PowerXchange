@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
+import VerifiedBadge from "../components/VerifiedBadge";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -230,7 +231,10 @@ export default function AdminDashboard() {
                 recentUsers.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-800">{user.full_name || user.email}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-gray-800">{user.full_name || user.email}</p>
+                        <VerifiedBadge isVerified={user.is_verified} size="xs" />
+                      </div>
                       <p className="text-sm text-gray-500">{user.email}</p>
                     </div>
                     <span className={`px-2 py-1 text-xs rounded-full ${
@@ -261,7 +265,10 @@ export default function AdminDashboard() {
                 pendingVerifications.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-800">{user.full_name || user.email}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-gray-800">{user.full_name || user.email}</p>
+                        <VerifiedBadge isVerified={user.is_verified} size="xs" />
+                      </div>
                       <p className="text-sm text-gray-500">{user.college || user.usn}</p>
                     </div>
                     <Link

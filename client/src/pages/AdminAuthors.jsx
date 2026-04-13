@@ -7,6 +7,10 @@ export default function AdminAuthors() {
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingAuthor, setEditingAuthor] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", genre: "", description: "", photo_url: "" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchAuthors();
@@ -47,6 +51,20 @@ export default function AdminAuthors() {
     }
   }
 
+  async function handleDisapprove(authorId) {
+    const { error } = await supabase
+      .from("authors")
+      .update({ is_approved: false })
+      .eq("id", authorId);
+
+    if (!error) {
+      alert("Author disapproved successfully!");
+      fetchAuthors();
+    } else {
+      alert("Error disapproving author: " + error.message);
+    }
+  }
+
   async function handleDelete(authorId) {
     if (!confirm("Are you sure you want to delete this author? All books by this author will be affected.")) {
       return;
@@ -62,6 +80,43 @@ export default function AdminAuthors() {
       fetchAuthors();
     } else {
       alert("Error deleting author: " + error.message);
+    }
+  }
+
+  function handleEdit(author) {
+    setEditingAuthor(author);
+    setEditForm({
+      name: author.name || "",
+      genre: author.genre || "",
+      description: author.description || "",
+      photo_url: author.photo_url || "",
+    });
+    setShowEditModal(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!editingAuthor) return;
+    setSaving(true);
+
+    const { error } = await supabase
+      .from("authors")
+      .update({
+        name: editForm.name,
+        genre: editForm.genre,
+        description: editForm.description,
+        photo_url: editForm.photo_url,
+      })
+      .eq("id", editingAuthor.id);
+
+    setSaving(false);
+
+    if (!error) {
+      alert("Author updated successfully!");
+      setShowEditModal(false);
+      setEditingAuthor(null);
+      fetchAuthors();
+    } else {
+      alert("Error updating author: " + error.message);
     }
   }
 
@@ -163,13 +218,26 @@ export default function AdminAuthors() {
                       {new Date(author.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="mt-4 flex gap-2">
-                    {!author.is_approved && (
+                  <div className="mt-4 flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => handleEdit(author)}
+                      className="flex-1 px-3 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                    >
+                      Edit
+                    </button>
+                    {!author.is_approved ? (
                       <button
                         onClick={() => handleApprove(author.id)}
                         className="flex-1 px-3 py-2 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                       >
                         Approve
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleDisapprove(author.id)}
+                        className="flex-1 px-3 py-2 text-xs bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                      >
+                        Disapprove
                       </button>
                     )}
                     <button
@@ -185,6 +253,95 @@ export default function AdminAuthors() {
           )}
         </div>
       </main>
+
+      {/* Edit Author Modal */}
+      {showEditModal && editingAuthor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full my-8">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-bold text-gray-900">Edit Author</h3>
+              <button
+                onClick={() => { setShowEditModal(false); setEditingAuthor(null); }}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  placeholder="Author name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Genre</label>
+                <input
+                  type="text"
+                  value={editForm.genre}
+                  onChange={(e) => setEditForm({ ...editForm, genre: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  placeholder="e.g., Fiction, Science, History"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  rows={4}
+                  placeholder="Brief description about the author"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Photo URL</label>
+                <input
+                  type="url"
+                  value={editForm.photo_url}
+                  onChange={(e) => setEditForm({ ...editForm, photo_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  placeholder="https://example.com/author-photo.jpg"
+                />
+                {editForm.photo_url && (
+                  <div className="mt-2">
+                    <img
+                      src={editForm.photo_url}
+                      alt="Preview"
+                      className="w-20 h-20 rounded-full object-cover border border-gray-200"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSaveEdit}
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                onClick={() => { setShowEditModal(false); setEditingAuthor(null); }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

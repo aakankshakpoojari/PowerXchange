@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import VerifiedBadge from "../components/VerifiedBadge";
 
 
 const statusStyles = {
@@ -53,6 +54,7 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
           name: profileData.full_name || user.user_metadata?.full_name || "User",
           email: profileData.email || user.email || "",
           college: profileData.college || user.user_metadata?.college || "",
+          is_verified: profileData.is_verified || false,
         };
         setForm(userData);
         setDraft(userData);
@@ -170,7 +172,10 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
             {form.name ? form.name[0].toUpperCase() : "U"}
           </div>
           <div>
-            <p className="text-lg font-medium text-gray-900">{form.name || "Loading..."}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-medium text-gray-900">{form.name || "Loading..."}</p>
+              <VerifiedBadge isVerified={form.is_verified} size="sm" />
+            </div>
             <p className="text-sm text-gray-500 mt-0.5">{form.email}</p>
             <div className="flex gap-5 mt-2">
               <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">{stats.listed}</span> listed</span>
