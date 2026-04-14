@@ -13,6 +13,8 @@ function Signup() {
   const [name,     setName]     = useState("");
   const [email,    setEmail]    = useState("");
   const [college,  setCollege]  = useState("");
+  const [phone,    setPhone]    = useState("");
+  const [location, setLocation] = useState("");
   const [password, setPassword] = useState("");
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
@@ -57,7 +59,7 @@ function Signup() {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name, full_name: name, college } },
+        options: { data: { name, full_name: name, college, phone, location } },
       });
 
       if (authError) {
@@ -106,6 +108,8 @@ function Signup() {
         full_name: name,   // profiles table uses full_name, not name
         email,
         college,
+        phone,
+        location,
         role: "user",
         status: "pending",
         ...(photoUrl  && { photo_url:   photoUrl  }),
@@ -201,6 +205,20 @@ function Signup() {
               <label className="text-sm font-medium text-gray-700">College Name</label>
               <input type="text" placeholder="Enter your college name" value={college}
                 onChange={(e) => setCollege(e.target.value)} required
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">Phone Number <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input type="tel" placeholder="Your phone number" value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">Location <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input type="text" placeholder="City, State" value={location}
+                onChange={(e) => setLocation(e.target.value)}
                 className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
             </div>
 

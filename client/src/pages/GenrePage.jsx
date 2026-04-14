@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Navbar from "./Navbar";
-import { GENRES } from "./HomePage";
+import { GENRES, getGenreImage } from "./HomePage";
 import Footer from "./Footer";
 
 export default function GenrePage({ isLoggedIn, onLogout, cart, wishlist, addToCart, addToWishlist }) {
@@ -11,10 +11,13 @@ export default function GenrePage({ isLoggedIn, onLogout, cart, wishlist, addToC
   const genreName = decodeURIComponent(name);
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [genreImage, setGenreImage] = useState(null);
 
-  // Try to find genre in hardcoded GENRES for the image
-  const genre  = GENRES.find(g => g.name.toLowerCase() === genreName.toLowerCase());
-  const genreImage = genre?.img || `https://ui-avatars.com/api/?name=${encodeURIComponent(genreName)}&size=96&background=dbeafe&color=1d4ed8&bold=true`;
+  // Fetch genre image - always use avatar with initials
+  useEffect(() => {
+    // Always use avatar with initials for consistent look
+    setGenreImage(getGenreImage(genreName, 96));
+  }, [genreName]);
 
   useEffect(() => {
     fetchBooks();
@@ -50,9 +53,15 @@ export default function GenrePage({ isLoggedIn, onLogout, cart, wishlist, addToC
 
         {/* Genre Header */}
         <div className="flex items-center gap-6 mb-10">
-          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-blue-100 shadow-md flex-shrink-0">
-            <img src={genreImage} alt={genreName} className="w-full h-full object-cover"
-              onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(genreName)}&size=96&background=dbeafe&color=1d4ed8`; }} />
+          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-blue-100 shadow-md flex-shrink-0 bg-blue-50">
+            {genreImage ? (
+              <img src={genreImage} alt={genreName} className="w-full h-full object-cover"
+                onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(genreName)}&size=96&background=dbeafe&color=1d4ed8`; }} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-blue-300">
+                {genreName[0]?.toUpperCase()}
+              </div>
+            )}
           </div>
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-1">Genre</p>

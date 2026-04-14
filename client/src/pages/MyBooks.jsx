@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Navbar from "./Navbar";
@@ -11,9 +11,12 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [editingBook, setEditingBook] = useState(null);
-  const [editForm, setEditForm] = useState({ genre: "", condition: "", is_available: true });
+  const [editForm, setEditForm] = useState({ genre: "", condition: "", is_available: true, image_url: "" });
   const [updating, setUpdating] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef(null);
 
   useEffect(() => {
     loadUserBooks();
@@ -71,39 +74,91 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
       genre: book.genre || "",
       condition: book.condition || "",
       is_available: book.is_available !== false,
+      image_url: book.image_url || "",
     });
+    setImagePreview(book.image_url || null);
   };
 
   const handleSaveDetails = async (bookId) => {
     setUpdating(true);
-    const { error } = await supabase
-      .from("books")
-      .update({
-        genre: editForm.genre,
-        condition: editForm.condition,
-        is_available: editForm.is_available,
-      })
-      .eq("id", bookId);
+    try {
+      let newImageUrl = editForm.image_url;
 
-    if (error) {
-      alert("Error updating book: " + error.message);
-    } else {
-      setSuccessMessage("Book details updated successfully");
-      setBooks(books.map(b => b.id === bookId ? {
-        ...b,
-        genre: editForm.genre,
-        condition: editForm.condition,
-        is_available: editForm.is_available,
-      } : b));
-      setEditingBook(null);
-      setTimeout(() => setSuccessMessage(""), 3000);
+      // Check if there's a new image file to upload
+      const imageInput = imageInputRef.current;
+      if (imageInput?.files?.[0]) {
+        setUploadingImage(true);
+        try {
+          newImageUrl = await uploadImage(imageInput.files[0]);
+        } catch (uploadErr) {
+          console.error("Image upload failed:", uploadErr);
+          alert(`Image upload failed: ${uploadErr.message}. Continuing without new image.`);
+        }
+        setUploadingImage(false);
+      }
+
+      const { error } = await supabase
+        .from("books")
+        .update({
+          genre: editForm.genre,
+          condition: editForm.condition,
+          is_available: editForm.is_available,
+          image_url: newImageUrl,
+        })
+        .eq("id", bookId);
+
+      if (error) {
+        alert("Error updating book: " + error.message);
+      } else {
+        setSuccessMessage("Book details updated successfully");
+        setBooks(books.map(b => b.id === bookId ? {
+          ...b,
+          genre: editForm.genre,
+          condition: editForm.condition,
+          is_available: editForm.is_available,
+          image_url: newImageUrl,
+        } : b));
+        setEditingBook(null);
+        setImagePreview(null);
+        setTimeout(() => setSuccessMessage(""), 3000);
+      }
+    } catch (err) {
+      alert("Error updating book: " + err.message);
     }
     setUpdating(false);
   };
 
   const handleCancelEdit = () => {
     setEditingBook(null);
-    setEditForm({ genre: "", condition: "", is_available: true });
+    setEditForm({ genre: "", condition: "", is_available: true, image_url: "" });
+    setImagePreview(null);
+  };
+
+  const handleImageChange = (file) => {
+    if (file) {
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadImage = async (file) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `book_images/${fileName}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('book-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('book-images')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
   };
 
   const handleDeleteBook = async (bookId) => {
@@ -264,6 +319,58 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
                     {/* Inline Edit Panel */}
                     {editingBook === book.id ? (
                       <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
+                        {/* Image Upload */}
+                        <div>
+                          <label className="text-xs text-gray-500 block mb-1 font-medium">Book Image</label>
+                          <div className="flex items-center gap-3">
+                            <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                              {imagePreview ? (
+                                <img
+                                  src={imagePreview}
+                                  alt="Preview"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.src = "https://placehold.co/80x112?text=No+Cover";
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xl">
+                                  📖
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <input
+                                ref={imageInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleImageChange(e.target.files[0])}
+                                className="hidden"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => imageInputRef.current?.click()}
+                                className="text-xs bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+                              >
+                                {imagePreview ? "Change Image" : "Upload Image"}
+                              </button>
+                              {imagePreview && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setImagePreview(null);
+                                    if (imageInputRef.current) imageInputRef.current.value = "";
+                                  }}
+                                  className="ml-2 text-xs text-red-500 hover:text-red-700"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                              <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-xs text-gray-500 block mb-1 font-medium">Genre</label>
@@ -304,10 +411,10 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleSaveDetails(book.id)}
-                            disabled={updating}
+                            disabled={updating || uploadingImage}
                             className="px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
                           >
-                            {updating ? "Saving..." : "Save Changes"}
+                            {uploadingImage ? "Uploading..." : updating ? "Saving..." : "Save Changes"}
                           </button>
                           <button
                             onClick={handleCancelEdit}

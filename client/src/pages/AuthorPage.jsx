@@ -110,13 +110,13 @@ export default function AuthorPage({ isLoggedIn, onLogout }) {
         </div>
 
         {/* Books listed on platform */}
-        {listedBooks.length > 0 && (
+        {listedBooks.length > 0 ? (
           <>
             <h2 className="text-xl font-bold text-blue-950 mb-5">
-              Available on PowerXchange
+              Books Available on PowerXchange
               <span className="ml-2 text-sm font-normal text-slate-400">({listedBooks.length} listings)</span>
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 mb-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
               {listedBooks.map((book) => (
                 <div key={book.id} onClick={() => navigate(`/books/${book.id}`)}
                   className="bg-white border border-blue-100 rounded-2xl overflow-hidden shadow-sm
@@ -139,35 +139,6 @@ export default function AuthorPage({ isLoggedIn, onLogout }) {
                       }`}>
                         {book.condition}
                       </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* All books by this author */}
-        {listedBooks.length > 0 ? (
-          <>
-            <h2 className="text-xl font-bold text-blue-950 mb-5">
-              All Books by {author.name}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {listedBooks.map((book) => (
-                <div key={book.id}
-                  onClick={() => navigate(`/books/${book.id}`)}
-                  className="bg-white border border-blue-100 rounded-2xl overflow-hidden shadow-sm transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-1">
-                  <div className="h-48 overflow-hidden bg-blue-50">
-                    <img src={book.image_url || book.cover_url} alt={book.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.target.src = "https://placehold.co/200x192?text=Book"; }} />
-                  </div>
-                  <div className="p-3">
-                    <p className="font-semibold text-blue-950 text-sm leading-snug mb-2">{book.title}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-blue-700">₹{book.price}</span>
-                      <span className="text-xs text-emerald-600 font-semibold">Available</span>
                     </div>
                   </div>
                 </div>

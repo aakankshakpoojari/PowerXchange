@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Navbar from "./Navbar";
@@ -8,7 +8,8 @@ const CATEGORIES = [
   "Textbook", "Reference Book", "Novel", "Guide", "Manual", "Other"
 ];
 
-const GENRES = [
+// Exported for use in other components
+export const GENRES = [
   "Fiction", "Non-Fiction", "Science", "Mathematics", "Engineering",
   "Medicine", "History", "Philosophy", "Economics", "Computer Science",
   "Literature", "Self-Help", "Biography", "Law", "Art and Design",
@@ -37,6 +38,10 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     email: "", address: "", city: "", pincode: "",
     quantity: "1",
   });
+
+  const [dbGenres, setDbGenres] = useState([]);
+  const [showGenreDropdown, setShowGenreDropdown] = useState(false);
+  const [genreInput, setGenreInput] = useState("");
 
   const [imagePreview, setImagePreview] = useState(null);
   const [authorQuery, setAuthorQuery] = useState("");
@@ -78,13 +83,73 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     setShowDropdown(false);
   };
 
+  // Function to refresh genres list
+  const fetchGenres = async () => {
+    const { supabase } = await import("../supabase");
+
+    console.log("Fetching genres...");
+
+    // Try fetching from genres table first (if it exists)
+    const { data: genreData, error: genreError } = await supabase
+      .from("genres")
+      .select("name")
+      .order("name");
+
+    if (!genreError && genreData && genreData.length > 0) {
+      console.log("Got genres from genres table:", genreData);
+      const dbGenreNames = genreData.map(g => g.name);
+      const allGenres = [...new Set([...dbGenreNames, ...GENRES])];
+      setDbGenres(allGenres);
+      return;
+    }
+
+    console.log("Genres table not available, fetching from books...");
+
+    // Fallback: fetch unique genres from books (includes unapproved)
+    const { data: booksData, error: booksError } = await supabase
+      .from("books")
+      .select("genre")
+      .not("genre", "is", null)
+      .neq("genre", "");
+
+    if (booksError) {
+      console.error("Error fetching genres from books:", booksError);
+    }
+
+    if (!booksError && booksData) {
+      console.log("Got genres from books:", booksData);
+      const dbGenreNames = [...new Set(booksData.map(b => b.genre).filter(g => g))];
+      console.log("Unique genres:", dbGenreNames);
+      const allGenres = [...new Set([...dbGenreNames, ...GENRES])];
+      console.log("All genres combined:", allGenres);
+      setDbGenres(allGenres);
+    } else {
+      // Final fallback to hardcoded
+      console.log("Using hardcoded genres");
+      setDbGenres(GENRES);
+    }
+  };
+
   const resetForm = () => {
     setSubmitted(false);
     setImagePreview(null);
     setSelectedAuthor(null);
     setAuthorQuery("");
+    setGenreInput("");
     setForm({ title: "", author: "", genre: "", condition: "", price: "", description: "", name: "", phone: "", email: "", address: "", city: "", pincode: "", quantity: "1" });
+    // Refresh genres list to include newly added genres
+    fetchGenres();
   };
+
+  // Refresh genres on mount
+  useEffect(() => {
+    fetchGenres();
+  }, []);
+
+  // Debug: log when form.genre changes
+  useEffect(() => {
+    console.log("Current genre in form:", form.genre);
+  }, [form.genre]);
 
   const uploadImage = async (file) => {
     const fileExt = file.name.split('.').pop();
@@ -198,6 +263,8 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
         }
       }
 
+      console.log("Submitting book with genre:", form.genre);
+
       const { data, error } = await supabase
         .from("books")
         .insert({
@@ -220,7 +287,17 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
           is_available: true,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Book insert error:", error);
+        throw error;
+      }
+
+      console.log("Book submitted successfully!");
+
+      // Trigger a storage event to notify other pages/tabs
+      localStorage.setItem('new-book-added', Date.now().toString());
+      localStorage.removeItem('new-book-added');
+
       setSubmitted(true);
     } catch (err) {
       alert("Error submitting book: " + err.message);
@@ -589,19 +666,63 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
                 )}
               </div>
 
-              <div>
+              <div className="sm:col-span-2 relative">
                 <label className={labelClass}>Genre</label>
-                <select
-                  value={form.genre}
-                  onChange={(e) => setForm({ ...form, genre: e.target.value })}
+                <input
+                  type="text"
+                  placeholder="Select or type new genre"
+                  value={genreInput || form.genre}
+                  onChange={(e) => {
+                    setGenreInput(e.target.value);
+                    setForm({ ...form, genre: e.target.value });
+                  }}
+                  onFocus={() => setShowGenreDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowGenreDropdown(false), 200)}
                   className={inputClass}
                   required
-                >
-                  <option value="">Select genre</option>
-                  {GENRES.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
+                />
+
+                {showGenreDropdown && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+                    {dbGenres
+                      .filter((g) => genreInput.length === 0 || g.toLowerCase().includes(genreInput.toLowerCase()))
+                      .length > 0 ? (
+                      // Show matching genres
+                      dbGenres
+                        .filter((g) => genreInput.length === 0 || g.toLowerCase().includes(genreInput.toLowerCase()))
+                        .map((genre) => (
+                          <button
+                            key={genre}
+                            type="button"
+                            onMouseDown={() => {
+                              setForm({ ...form, genre });
+                              setGenreInput(genre);
+                              setShowGenreDropdown(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition text-left"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold shrink-0">
+                              {genre[0]}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{genre}</p>
+                            </div>
+                          </button>
+                        ))
+                    ) : genreInput.length > 0 ? (
+                      // No matches - show message that user can create new genre
+                      <div className="px-4 py-3 text-sm text-gray-500">
+                        <p className="font-medium text-blue-600">"{genreInput}"</p>
+                        <p>Will be added as a new genre when you submit the book</p>
+                      </div>
+                    ) : (
+                      // No genres at all
+                      <div className="px-4 py-3 text-sm text-gray-500">
+                        No genres found
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>

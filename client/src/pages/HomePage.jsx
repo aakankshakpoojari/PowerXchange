@@ -94,19 +94,25 @@ export const BOOKS = [
   { id: "b-sm-1", title: "Wise and Otherwise", author: "Sudha Murthy", price: 190, listingType: "sell", condition: "new", genre: "Biography", description: "A collection of 51 real-life stories from Sudha Murthy's experiences travelling across India. New condition, unread.", imageUrl: "https://covers.openlibrary.org/b/id/8114491-M.jpg", available: true, rentedTillNow: 2, avgReadingTime: "1 week", avgRentingTime: "2 weeks", authorId: "sudha-murthy", seller: { name: "Kavya R.", college: "RVCE Bangalore", rating: 4.9, totalRatings: 7 }, relatedBooks: [], feedback: [{ id: 1, user: "Deepa N.", college: "Christ University", rating: 5, comment: "Beautifully written. New copy as described.", date: "Feb 2025" }] },
 ];
 
+// Helper function to generate avatar URL with genre initials
+export function getGenreImage(genreName, size = 200) {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(genreName)}&size=${size}&background=dbeafe&color=1d4ed8&bold=true`;
+}
+
+// Hardcoded fallback genres with initials-based images
 export const GENRES = [
-  { name: "Biography",    img: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=200&fit=crop" },
-  { name: "Arts & Crafts",img: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=200&h=200&fit=crop" },
-  { name: "Business",     img: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=200&h=200&fit=crop" },
-  { name: "Comics",       img: "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=200&h=200&fit=crop" },
-  { name: "Cookery",      img: "https://images.unsplash.com/photo-1466637574441-749b8f19452f?w=200&h=200&fit=crop" },
-  { name: "History",      img: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=200&h=200&fit=crop" },
-  { name: "Kids",         img: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=200&h=200&fit=crop" },
-  { name: "Science",      img: "https://images.unsplash.com/photo-1532094349884-543559c5f185?w=200&h=200&fit=crop" },
-  { name: "Sports",       img: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=200&h=200&fit=crop" },
-  { name: "Travel",       img: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=200&h=200&fit=crop" },
-  { name: "Fiction",      img: "https://images.unsplash.com/photo-1519682337058-a94d519337bc?w=200&h=200&fit=crop" },
-  { name: "Self Help",    img: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=200&h=200&fit=crop" },
+  { name: "Biography",    img: getGenreImage("Biography") },
+  { name: "Arts & Crafts",img: getGenreImage("Arts & Crafts") },
+  { name: "Business",     img: getGenreImage("Business") },
+  { name: "Comics",       img: getGenreImage("Comics") },
+  { name: "Cookery",      img: getGenreImage("Cookery") },
+  { name: "History",      img: getGenreImage("History") },
+  { name: "Kids",         img: getGenreImage("Kids") },
+  { name: "Science",      img: getGenreImage("Science") },
+  { name: "Sports",       img: getGenreImage("Sports") },
+  { name: "Travel",       img: getGenreImage("Travel") },
+  { name: "Fiction",      img: getGenreImage("Fiction") },
+  { name: "Self Help",    img: getGenreImage("Self Help") },
 ];
 
 const kidsBooks = [
@@ -124,14 +130,36 @@ const conditionData = [
   { title: "Old Copies",     img: "https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=400&h=220&fit=crop" },
 ];
 
-export function searchBooks(query, booksToUse = BOOKS) {
-  if (!query) return [];
+export function searchBooks(query, booksToUse = BOOKS, filters = {}) {
+  if (!query && !Object.keys(filters).length) return booksToUse;
   const q = query.toLowerCase();
-  return booksToUse.filter(b =>
-    b.title?.toLowerCase().includes(q) ||
-    b.author?.toLowerCase().includes(q) ||
-    b.genre?.toLowerCase().includes(q)
-  );
+
+  return booksToUse.filter(b => {
+    // Text search match
+    const textMatch = !query ||
+      b.title?.toLowerCase().includes(q) ||
+      b.author?.toLowerCase().includes(q) ||
+      b.genre?.toLowerCase().includes(q);
+
+    if (!textMatch) return false;
+
+    // Apply filters
+    if (filters.genre && filters.genre !== "All" && b.genre?.toLowerCase() !== filters.genre.toLowerCase()) {
+      return false;
+    }
+    if (filters.condition && filters.condition !== "All" && b.condition?.toLowerCase() !== filters.condition.toLowerCase()) {
+      return false;
+    }
+    if (filters.priceRange && filters.priceRange !== "All") {
+      const price = parseFloat(b.price) || 0;
+      if (filters.priceRange === "Under 100" && price >= 100) return false;
+      if (filters.priceRange === "100-200" && (price < 100 || price > 200)) return false;
+      if (filters.priceRange === "200-500" && (price < 200 || price > 500)) return false;
+      if (filters.priceRange === "Over 500" && price <= 500) return false;
+    }
+
+    return true;
+  });
 }
 
 function AccentBar() {
@@ -198,29 +226,85 @@ function Hero({ onBrowse }) {
 function GenreStrip({ onGenreClick, sectionRef }) {
   const ref = useRef(null);
   const [dbGenres, setDbGenres] = useState([]);
+  const [lastFetchTime, setLastFetchTime] = useState(Date.now());
 
   useEffect(() => {
     const fetchGenres = async () => {
       const { supabase } = await import("../supabase");
-      const { data, error } = await supabase
+
+      console.log("HomePage: Fetching genres...");
+
+      // First, try to fetch from genres table
+      const { data: genreData, error: genreError } = await supabase
+        .from("genres")
+        .select("name, image_url")
+        .order("name");
+
+      if (!genreError && genreData && genreData.length > 0) {
+        console.log("HomePage: Got genres from genres table:", genreData);
+        // Always use avatar with initials for consistent look
+        setDbGenres(genreData.map(g => ({
+          name: g.name,
+          img: getGenreImage(g.name, 80)
+        })));
+        return;
+      }
+
+      console.log("HomePage: Genres table not available, fetching from books...");
+
+      // Fallback: get unique genres from ALL books (not just approved)
+      // This ensures new genres appear immediately
+      const { data: booksData, error: booksError } = await supabase
         .from("books")
         .select("genre")
-        .eq("is_approved", true)
-        .eq("is_available", true);
+        .not("genre", "is", null)
+        .neq("genre", "")
+        .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        // Get unique genres from books
-        const uniqueGenres = [...new Set(data.map(b => b.genre).filter(g => g))];
+      if (booksError) {
+        console.error("HomePage: Error fetching genres from books:", booksError);
+      }
+
+      if (!booksError && booksData) {
+        console.log("HomePage: Got genres from books:", booksData);
+        const uniqueGenres = [...new Set(booksData.map(b => b.genre).filter(g => g))];
+        console.log("HomePage: Unique genres:", uniqueGenres);
         setDbGenres(uniqueGenres.map(g => ({
           name: g,
-          img: `https://ui-avatars.com/api/?name=${encodeURIComponent(g)}&size=80&background=dbeafe&color=1d4ed8&bold=true`
+          img: getGenreImage(g, 80)
         })));
       }
     };
 
     fetchGenres();
+  }, [lastFetchTime]);
+
+  // Listen for storage events (when another tab/page adds a new genre)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'new-book-added') {
+        console.log("HomePage: New book added, refreshing genres...");
+        setLastFetchTime(Date.now());
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also refresh on visibility change (when user switches back to this tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("HomePage: Tab became visible, refreshing genres...");
+        setLastFetchTime(Date.now());
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
+  // Combine db genres with hardcoded fallbacks (db genres take priority)
   const genresToShow = dbGenres.length > 0 ? dbGenres : GENRES;
 
   return (
@@ -231,10 +315,12 @@ function GenreStrip({ onGenreClick, sectionRef }) {
           {genresToShow.map((g) => (
             <div key={g.name} onClick={() => onGenreClick && onGenreClick(g.name)}
               className="flex flex-col items-center min-w-[96px] cursor-pointer group">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-blue-100
+              <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-blue-100 bg-blue-50
                 group-hover:border-blue-500 group-hover:scale-105 transition-all duration-200 shadow-sm">
                 <img src={g.img} alt={g.name} className="w-full h-full object-cover"
-                  onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name)}&size=80&background=dbeafe&color=1d4ed8`; }} />
+                  onError={(e) => {
+                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name)}&size=80&background=dbeafe&color=1d4ed8&bold=true`;
+                  }} />
               </div>
               <p className="mt-2 text-center text-sm font-semibold text-blue-900 leading-tight">{g.name}</p>
             </div>
@@ -248,37 +334,133 @@ function GenreStrip({ onGenreClick, sectionRef }) {
 }
 
 function SearchResults({ query, onBookClick, booksToUse }) {
-  const results = searchBooks(query, booksToUse);
+  const [filters, setFilters] = useState({
+    genre: "All",
+    condition: "All",
+    priceRange: "All"
+  });
+
+  // Get unique genres from books for filter dropdown
+  const availableGenres = [...new Set(booksToUse.map(b => b.genre).filter(g => g))].sort();
+  const availableConditions = [...new Set(booksToUse.map(b => b.condition).filter(c => c))].sort();
+
+  const results = searchBooks(query, booksToUse, filters);
+
+  const hasActiveFilters = Object.values(filters).some(v => v !== "All");
+
   return (
     <div className="px-7 mt-8">
-      <h2 className="flex items-center gap-2.5 font-serif font-bold text-xl text-blue-950 mb-2">
+      <h2 className="flex items-center gap-2.5 font-serif font-bold text-xl text-blue-950 mb-4">
         <AccentBar />Search results for "{query}"
         <span className="text-sm font-normal text-slate-400">({results.length} found)</span>
       </h2>
+
+      {/* Filters */}
+      <div className="bg-white border border-blue-100 rounded-xl p-4 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          <span className="text-sm font-semibold text-gray-700">Filters</span>
+          {hasActiveFilters && (
+            <button
+              onClick={() => setFilters({ genre: "All", condition: "All", priceRange: "All" })}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium ml-auto"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {/* Genre Filter */}
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Genre</label>
+            <select
+              value={filters.genre}
+              onChange={(e) => setFilters({ ...filters, genre: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="All">All Genres</option>
+              {availableGenres.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Condition Filter */}
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Condition</label>
+            <select
+              value={filters.condition}
+              onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="All">All Conditions</option>
+              {availableConditions.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Price Range Filter */}
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Price Range</label>
+            <select
+              value={filters.priceRange}
+              onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="All">Any Price</option>
+              <option value="Under 100">Under ₹100</option>
+              <option value="100-200">₹100 - ₹200</option>
+              <option value="200-500">₹200 - ₹500</option>
+              <option value="Over 500">Over ₹500</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {results.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
           <div className="text-5xl mb-3">🔍</div>
-          <p className="text-lg font-medium">No books found for "{query}"</p>
-          <p className="text-sm mt-1">Try a different title, author, or genre</p>
+          <p className="text-lg font-medium">No books found</p>
+          <p className="text-sm mt-2">
+            {hasActiveFilters
+              ? "Try adjusting your filters or search term"
+              : "Try a different title, author, or genre"}
+          </p>
+          {hasActiveFilters && (
+            <button
+              onClick={() => setFilters({ genre: "All", condition: "All", priceRange: "All" })}
+              className="mt-4 text-blue-600 hover:text-blue-800 font-medium text-sm"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {results.map((b) => (
             <div key={b.id} onClick={() => onBookClick(b.id)}
               className="bg-white border border-blue-100 rounded-xl overflow-hidden shadow-sm
                 hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-pointer group">
-              <div className="h-40 overflow-hidden bg-blue-50">
+              <div className="h-64 overflow-hidden bg-blue-50">
                 <img src={b.imageUrl} alt={b.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={(e) => { e.target.src = "https://placehold.co/200x160?text=Book"; }} />
+                  onError={(e) => { e.target.src = "https://placehold.co/150x256?text=Book"; }} />
               </div>
-              <div className="p-3">
-                <p className="font-semibold text-blue-950 text-sm leading-snug">{b.title}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{b.author}</p>
-                <div className="flex items-center justify-between mt-2">
+              <div className="p-2.5">
+                <p className="font-semibold text-blue-950 text-xs leading-snug mb-1 line-clamp-2">{b.title}</p>
+                <p className="text-[10px] text-slate-400 mb-2 truncate">{b.author}</p>
+                <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-blue-700">₹{b.price}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${b.listingType === "sell" ? "bg-violet-100 text-violet-700" : "bg-teal-100 text-teal-700"}`}>
-                    {b.listingType === "sell" ? "For Sale" : "For Rent"}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                    b.condition === "Brand New" ? "bg-green-100 text-green-700" :
+                    b.condition === "Like New" ? "bg-blue-100 text-blue-700" :
+                    b.condition === "Good Condition" ? "bg-yellow-100 text-yellow-700" :
+                    "bg-orange-100 text-orange-700"
+                  }`}>
+                    {b.condition}
                   </span>
                 </div>
               </div>
@@ -291,54 +473,86 @@ function SearchResults({ query, onBookClick, booksToUse }) {
 }
 
 function BookGridSlider({ title, data, onBookClick }) {
-  const [page, setPage] = useState(0);
-  const perPage    = 7;
-  const totalPages = Math.ceil(data.length / perPage);
-  const chunk      = data.slice(page * perPage, page * perPage + perPage);
-  const featured   = chunk[0];
-  const grid       = chunk.slice(1, 7);
+  const ref = useRef(null);
+
+  // Infinite circular auto-scroll for trending books
+  useEffect(() => {
+    const scrollInterval = setInterval(() => {
+      if (ref.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = ref.current;
+        const maxScroll = scrollWidth - clientWidth;
+
+        // When near the end, seamlessly jump to start without reversing
+        if (scrollLeft >= maxScroll - 10) {
+          // Disable smooth scrolling for instant seamless loop
+          ref.current.style.scrollBehavior = 'auto';
+          ref.current.scrollTo({ left: 0 });
+          // Re-enable smooth scrolling after a brief delay
+          setTimeout(() => {
+            ref.current.style.scrollBehavior = 'smooth';
+          }, 50);
+        } else {
+          // Continuous forward scroll
+          ref.current.scrollBy({ left: 1, behavior: 'auto' });
+        }
+      }
+    }, 30);
+
+    return () => clearInterval(scrollInterval);
+  }, []);
+
+  const handleScrollLeft = () => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: -220, behavior: 'smooth' });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (ref.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = ref.current;
+      const maxScroll = scrollWidth - clientWidth;
+      if (scrollLeft >= maxScroll - 10) {
+        // At end, loop to start
+        ref.current.style.scrollBehavior = 'auto';
+        ref.current.scrollTo({ left: 0 });
+        setTimeout(() => {
+          ref.current.style.scrollBehavior = 'smooth';
+        }, 50);
+      } else {
+        ref.current.scrollBy({ left: 220, behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
     <div className="px-7 mt-8 relative">
       <h2 className="flex items-center gap-2.5 font-serif font-bold text-xl text-blue-950 mb-4">
         <AccentBar />{title}
       </h2>
-      <div className="flex gap-3 items-stretch">
-        {featured && (
-          <div onClick={() => onBookClick(featured.id)}
-            className="flex-shrink-0 w-48 rounded-xl overflow-hidden border border-blue-100
-              shadow-md hover:-translate-y-1 hover:shadow-blue-200 transition-all duration-200 cursor-pointer">
-            <img src={featured.img} alt={featured.title}
-              className="w-full h-full min-h-[280px] object-cover"
-              onError={(e) => { e.target.src = "https://placehold.co/192x280/1d4ed8/ffffff?text=Book"; }} />
+      <div
+        ref={ref}
+        className="flex gap-4 overflow-x-auto scrollbar-hide pb-1"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {data.map((book) => (
+          <div key={book.id} onClick={() => onBookClick && onBookClick(book.id)}
+            className="min-w-[220px] max-w-[220px] flex-shrink-0 bg-white rounded-xl border border-blue-100
+              shadow-sm overflow-hidden hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer">
+            <div className="h-72 overflow-hidden bg-blue-50">
+              <img src={book.img} alt={book.title}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.src = "https://placehold.co/220x288?text=Book"; }} />
+            </div>
+            <div className="p-3">
+              <p className="font-semibold text-blue-950 text-base leading-snug mb-1 line-clamp-2">{book.title}</p>
+              <p className="text-sm text-slate-500 mb-2 truncate">{book.author || "Unknown"}</p>
+              <span className="text-lg font-bold text-blue-700">₹{book.price}</span>
+            </div>
           </div>
-        )}
-        <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => {
-            const book = grid[i];
-            if (!book) return <div key={i} className="bg-blue-50 rounded-xl border border-dashed border-blue-200" />;
-            return (
-              <div key={i} onClick={() => onBookClick(book.id)}
-                className="bg-white rounded-xl border border-blue-100 shadow-sm p-3 flex gap-3 items-center
-                  hover:-translate-y-1 hover:shadow-md hover:shadow-blue-100 transition-all duration-200 cursor-pointer">
-                <img src={book.img} alt={book.title}
-                  className="w-14 h-20 object-cover rounded-md flex-shrink-0 shadow-sm"
-                  onError={(e) => { e.target.src = "https://placehold.co/56x80/1d4ed8/ffffff?text=Book"; }} />
-                <div>
-                  <p className="font-semibold text-sm text-blue-950 leading-snug mb-2">{book.title}</p>
-                  <RentBtn onClick={(e) => { e.stopPropagation(); onBookClick(book.id); }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        ))}
       </div>
-      <div className="mt-3 h-0.5 bg-blue-100 rounded-full">
-        <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full transition-all duration-300"
-          style={{ width: `${100 / Math.max(totalPages,1)}%`, marginLeft: `${page * (100 / Math.max(totalPages,1))}%` }} />
-      </div>
-      {page > 0            && <ArrowBtn side="left"  onClick={() => setPage(p => p - 1)} />}
-      {page < totalPages-1 && <ArrowBtn side="right" onClick={() => setPage(p => p + 1)} />}
+      <ArrowBtn side="left"  onClick={handleScrollLeft} />
+      <ArrowBtn side="right" onClick={handleScrollRight} />
     </div>
   );
 }
@@ -350,18 +564,19 @@ function BookRowSlider({ title, data, onBookClick }) {
       <h2 className="flex items-center gap-2.5 font-serif font-bold text-xl text-blue-950 mb-4">
         <AccentBar />{title}
       </h2>
-      <div ref={ref} className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+      <div ref={ref} className="flex gap-4 overflow-x-auto scrollbar-hide pb-1">
         {data.map((book, i) => (
           <div key={i} onClick={() => onBookClick && onBookClick(book.id)}
-            className="min-w-[240px] max-w-[240px] flex-shrink-0 bg-white rounded-xl border border-blue-100
-              shadow-sm p-3 flex gap-3 items-center hover:-translate-y-1 hover:shadow-md hover:shadow-blue-100
+            className="min-w-[280px] max-w-[280px] flex-shrink-0 bg-white rounded-xl border border-blue-100
+              shadow-sm p-4 flex gap-4 items-center hover:-translate-y-1 hover:shadow-md hover:shadow-blue-100
               transition-all duration-200 cursor-pointer">
             <img src={book.img} alt={book.title}
-              className="w-[72px] h-24 object-cover rounded-lg flex-shrink-0 shadow-sm"
-              onError={(e) => { e.target.src = "https://placehold.co/72x96/1d4ed8/ffffff?text=Book"; }} />
+              className="w-[90px] h-32 object-cover rounded-lg flex-shrink-0 shadow-md"
+              onError={(e) => { e.target.src = "https://placehold.co/90x128/1d4ed8/ffffff?text=Book"; }} />
             <div>
-              <p className="font-semibold text-sm text-blue-950 leading-snug mb-2.5">{book.title}</p>
-              <RentBtn />
+              <p className="font-semibold text-base text-blue-950 leading-snug mb-3">{book.title}</p>
+              <p className="text-sm text-slate-500 mb-2">{book.author || "Unknown"}</p>
+              <span className="text-lg font-bold text-blue-700">₹{book.price}</span>
             </div>
           </div>
         ))}
@@ -409,10 +624,10 @@ function AuthorSlider({ onAuthorClick }) {
   useEffect(() => {
     const fetchAuthors = async () => {
       const { supabase } = await import("../supabase");
+      // Fetch ALL authors (not just approved) so new authors appear immediately
       const { data, error } = await supabase
         .from("authors")
         .select("*")
-        .eq("is_approved", true)
         .order("created_at", { ascending: false });
 
       if (!error && data) {
@@ -427,15 +642,15 @@ function AuthorSlider({ onAuthorClick }) {
 
   return (
     <div className="px-7 mt-6 relative">
-      <div ref={ref} className="flex gap-7 overflow-x-auto scrollbar-hide py-2">
+      <div ref={ref} className="flex gap-8 overflow-x-auto scrollbar-hide py-2">
         {authorsToShow.map((a) => (
           <div key={a.id} onClick={() => onAuthorClick(a.id)}
-            className="flex flex-col items-center min-w-[96px] cursor-pointer group">
+            className="flex flex-col items-center min-w-[120px] cursor-pointer group">
             <img src={a.photo_url || a.img} alt={a.name}
-              className="w-20 h-20 rounded-full object-cover border-2 border-blue-100
-                group-hover:border-blue-500 group-hover:scale-105 transition-all duration-200 shadow-sm"
-              onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&size=80&background=dbeafe&color=1d4ed8&bold=true`; }} />
-            <p className="mt-2 text-center text-sm font-medium text-blue-900 leading-tight">{a.name}</p>
+              className="w-28 h-28 rounded-full object-cover border-4 border-blue-100
+                group-hover:border-blue-500 group-hover:scale-105 transition-all duration-200 shadow-md"
+              onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&size=112&background=dbeafe&color=1d4ed8&bold=true`; }} />
+            <p className="mt-3 text-center text-base font-semibold text-blue-900 leading-tight">{a.name}</p>
           </div>
         ))}
       </div>
@@ -482,7 +697,7 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
       const { supabase } = await import("../supabase");
       const { data, error } = await supabase
         .from("books")
-        .select("id, title, image_url, cover_url")
+        .select("id, title, author, price, image_url, cover_url")
         .order("created_at", { ascending: false })
         .limit(20);
 
@@ -490,6 +705,8 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
         const queue = data.map(b => ({
           id: b.id,
           title: b.title,
+          author: b.author || "Unknown",
+          price: b.price || 0,
           img: b.image_url || b.cover_url || "https://placehold.co/200x160?text=Book"
         }));
         setNewArrivalsQueue(queue);
@@ -512,6 +729,8 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
           books (
             id,
             title,
+            author,
+            price,
             image_url,
             cover_url,
             is_approved,
@@ -530,6 +749,8 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
           .map(s => ({
             id: s.books.id,
             title: s.books.title,
+            author: s.books.author || "Unknown",
+            price: s.books.price || 0,
             img: s.books.image_url || s.books.cover_url || "https://placehold.co/200x160?text=Book",
             trendingScore: s.trending_score
           }));
@@ -543,7 +764,7 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
       // No statistics data - fallback to recently added books
       const { data: fallbackData, error: fallbackError } = await supabase
         .from("books")
-        .select("id, title, image_url, cover_url")
+        .select("id, title, author, price, image_url, cover_url")
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -551,6 +772,8 @@ export default function HomePage({ isLoggedIn, onLogout, cart, wishlist, addToCa
         const fallback = fallbackData.map(b => ({
           id: b.id,
           title: b.title,
+          author: b.author || "Unknown",
+          price: b.price || 0,
           img: b.image_url || b.cover_url || "https://placehold.co/200x160?text=Book"
         }));
         setTrendingBooks(fallback);
