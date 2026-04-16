@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import { Package, ShoppingBag, CheckCircle, XCircle, Clock, Eye, Bell } from "lucide-react";
+import { Package, ShoppingBag, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
 
 const STATUS_STYLES = {
   pending:   { bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200", icon: Clock,       label: "Pending" },
@@ -16,7 +16,6 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
   const [activeTab, setActiveTab] = useState("purchases");
   const [purchases, setPurchases] = useState([]);
   const [incoming, setIncoming] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
@@ -31,51 +30,36 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
     if (!user) { navigate("/login"); return; }
     setUserId(user.id);
 
-    // Load purchases (as buyer) - use shorthand join syntax that works with Supabase
-    const { data: buyerTx, error: buyerErr } = await supabase
-      .from("transactions")
-      .select("*, books(id, title, author, image_url, genre, condition, price), seller:seller_id(full_name, name, email, college)")
-      .eq("buyer_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (buyerErr) console.error("Error loading purchases:", buyerErr);
-    setPurchases(buyerTx || []);
-
-    // Load incoming orders (as seller)
-    const { data: sellerTx, error: sellerErr } = await supabase
-      .from("transactions")
-      .select("*, books(id, title, author, image_url, genre, condition, price), buyer:buyer_id(full_name, name, email, college)")
-      .eq("seller_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (sellerErr) console.error("Error loading incoming orders:", sellerErr);
-    setIncoming(sellerTx || []);
-
-    // Load notifications (table may not exist yet)
-    let notifsList = [];
     try {
-      const { data: notifs, error: notifErr } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
+      // Load purchases (as buyer) - use shorthand join syntax that works with Supabase
+      const { data: buyerTx, error: buyerErr } = await supabase
+        .from("transactions")
+        .select("*, books(id, title, author, image_url, genre, condition, price), seller:seller_id(full_name, name, email, college)")
+        .eq("buyer_id", user.id)
+        .order("created_at", { ascending: false });
 
-      if (!notifErr && notifs) {
-        notifsList = notifs;
-        // Mark all as read
-        if (notifs.some(n => !n.is_read)) {
-          await supabase
-            .from("notifications")
-            .update({ is_read: true })
-            .eq("user_id", user.id)
-            .eq("is_read", false);
+      if (buyerErr) {
+        console.error("Error loading purchases:", buyerErr);
+        if (buyerErr.message.includes("relation") || buyerErr.message.includes("does not exist")) {
+          alert("Transactions table not set up yet. Please run the database setup script.");
         }
       }
+      setPurchases(buyerTx || []);
+
+      // Load incoming orders (as seller)
+      const { data: sellerTx, error: sellerErr } = await supabase
+        .from("transactions")
+        .select("*, books(id, title, author, image_url, genre, condition, price), buyer:buyer_id(full_name, name, email, college)")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (sellerErr) {
+        console.error("Error loading incoming orders:", sellerErr);
+      }
+      setIncoming(sellerTx || []);
     } catch (err) {
-      console.error("Notifications table may not exist yet:", err);
+      console.error("Unexpected error loading orders:", err);
     }
-    setNotifications(notifsList);
 
     setLoading(false);
   };
@@ -90,15 +74,6 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
         .eq("id", tx.id);
 
       if (error) throw error;
-
-      // Notify buyer
-      await supabase.from("notifications").insert({
-        user_id: tx.buyer_id,
-        type: "request_accepted",
-        title: "Order Accepted! 🎉",
-        message: `Your request for "${tx.books?.title}" has been accepted by the seller. View the transaction details for more info.`,
-        transaction_id: tx.id,
-      });
 
       setSuccessMsg("Order accepted successfully!");
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -136,15 +111,6 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
             .eq("id", tx.books.id);
         }
       }
-
-      // Notify buyer
-      await supabase.from("notifications").insert({
-        user_id: tx.buyer_id,
-        type: "request_cancelled",
-        title: "Order Declined",
-        message: `Your request for "${tx.books?.title}" has been declined by the seller.`,
-        transaction_id: tx.id,
-      });
 
       setSuccessMsg("Order declined.");
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -310,9 +276,8 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
   }
 
   const tabs = [
-    { key: "purchases", label: "My Purchases",    icon: ShoppingBag, count: purchases.length },
+    { key: "purchases", label: "My Purchases", icon: ShoppingBag, count: purchases.length },
     { key: "incoming",  label: "Incoming Orders",  icon: Package,     count: incoming.length },
-    { key: "notifications", label: "Notifications", icon: Bell, count: notifications.length },
   ];
 
   const pendingIncoming = incoming.filter(t => t.status === "pending").length;
@@ -436,50 +401,6 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
               </div>
             ) : (
               incoming.map((tx) => <OrderCard key={tx.id} tx={tx} role="seller" />)
-            )}
-          </div>
-        )}
-
-        {/* Notifications Tab */}
-        {activeTab === "notifications" && (
-          <div className="space-y-3">
-            {notifications.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-                <div className="text-5xl mb-4">🔔</div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications</h3>
-                <p className="text-gray-500 text-sm">You'll be notified when someone requests your books or responds to your requests</p>
-              </div>
-            ) : (
-              notifications.map((notif) => (
-                <div
-                  key={notif.id}
-                  onClick={() => notif.transaction_id && navigate(`/transaction/${notif.transaction_id}`)}
-                  className={`bg-white border rounded-xl p-4 cursor-pointer hover:shadow-md transition-all ${
-                    notif.is_read ? "border-gray-200" : "border-blue-300 bg-blue-50/30"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-lg ${
-                      notif.type === "purchase_request" ? "bg-amber-100" :
-                      notif.type === "request_accepted" ? "bg-emerald-100" :
-                      notif.type === "exchange_request" ? "bg-teal-100" :
-                      "bg-red-100"
-                    }`}>
-                      {notif.type === "purchase_request" ? "🛒" :
-                       notif.type === "request_accepted" ? "✅" :
-                       notif.type === "exchange_request" ? "📦" :
-                       "❌"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{notif.title}</p>
-                      <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{notif.message}</p>
-                      <p className="text-xs text-gray-400 mt-1.5">
-                        {formatDate(notif.created_at)} at {formatTime(notif.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))
             )}
           </div>
         )}

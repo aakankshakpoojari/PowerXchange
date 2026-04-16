@@ -3,7 +3,9 @@
     "allow": [
       "Bash(findstr \"5173\")",
       "Bash(npm run:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(cat client\\\\src\\\\supabase.js)",
+      "Bash(cat client\\\\src\\\\supabase.ts)"
     ]
   }
 }

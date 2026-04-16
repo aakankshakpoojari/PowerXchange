@@ -25,6 +25,7 @@ import CartPage from "./pages/CartPage";
 import WishlistPage from "./pages/WishlistPage";
 import OrdersPage from "./pages/OrdersPage";
 import TransactionDetail from "./pages/TransactionDetail";
+import NotificationsPage from "./pages/NotificationsPage";
 
 export default function App() {
   const [authState, setAuthState] = useState("loading");
@@ -212,6 +213,7 @@ export default function App() {
         <Route path="/cart"        element={requireAuth(<CartPage   {...sharedProps} />)} />
         <Route path="/wishlist"    element={requireAuth(<WishlistPage {...sharedProps} />)} />
         <Route path="/orders"      element={requireAuth(<OrdersPage  {...sharedProps} />)} />
+        <Route path="/notifications" element={requireAuth(<NotificationsPage {...sharedProps} />)} />
         <Route path="/transaction/:id" element={requireAuth(<TransactionDetail {...sharedProps} />)} />
         <Route path="/admin"             element={requireAdmin(<AdminDashboard {...sharedProps} />)} />
         <Route path="/admin/users"       element={requireAdmin(<AdminUsers     {...sharedProps} />)} />

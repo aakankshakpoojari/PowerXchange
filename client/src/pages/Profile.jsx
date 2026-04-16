@@ -4,34 +4,31 @@ import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import VerifiedBadge from "../components/VerifiedBadge";
+import { Package, ShoppingBag, CheckCircle, Clock, Heart, BookOpen, ShoppingCart } from "lucide-react";
 
-
-const statusStyles = {
-  available: "bg-green-100 text-green-700",
-  "on hold": "bg-amber-100 text-amber-700",
-  sold: "bg-blue-100 text-blue-700",
-};
-
-const historyIcon = { exchange: "⇄", bought: "↓", sold: "↑" };
-const historyBg = { exchange: "bg-green-100", bought: "bg-blue-100", sold: "bg-amber-100" };
 
 export default function Profile({ isLoggedIn, onLogout, cart }) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("listed");
-  const [wishlist, setWishlist] = useState([]);
-  const [listedBooks, setListedBooks] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [stats, setStats] = useState({ listed: 0, exchanged: 0, wishlist: 0 });
+  const [stats, setStats] = useState({
+    listed: 0,
+    sold: 0,
+    purchases: 0,
+    wishlist: 0,
+    totalEarnings: 0,
+    totalSpent: 0,
+  });
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     college: "",
+    is_verified: false,
   });
   const [draft, setDraft] = useState(form);
   const [userId, setUserId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   // Fetch user profile and data from database
   useEffect(() => {
@@ -61,73 +58,53 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
       }
 
       // Fetch user's listed books
-      const { data: booksData, error: booksError } = await supabase
+      const { data: booksData } = await supabase
         .from("books")
         .select("*")
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false });
 
-      setListedBooks(booksData || []);
-
-      // Fetch wishlist (table might not exist yet)
+      // Fetch wishlist
       let wishlistData = [];
-      const { data: wd, error: we } = await supabase
+      const { data: wd } = await supabase
         .from("wishlist")
-        .select("*, books(*)")
+        .select("book_id")
         .eq("user_id", user.id);
-      if (!we && wd) {
-        wishlistData = wd;
-        setWishlist(wd.map(w => ({ ...w.books, wishlistId: w.id })) || []);
-      } else {
-        setWishlist([]);
-      }
+      if (wd) wishlistData = wd;
 
-      // Fetch transaction history (table might not exist yet)
-      let historyData = [];
-      const { data: td, error: te } = await supabase
+      // Fetch transactions - both as buyer and seller
+      const { data: buyerTx } = await supabase
         .from("transactions")
-        .select("*, books(title), buyer:buyer_id(full_name), seller:seller_id(full_name)")
-        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-        .order("created_at", { ascending: false });
-      if (!te && td) {
-        historyData = td.map(t => ({
-          id: t.id,
-          type: t.status === "completed" ? "sold" : "exchange",
-          title: t.books?.title || "Book",
-          with: t.buyer_id === user.id
-            ? `From ${t.seller?.full_name || "User"}`
-            : `To ${t.buyer?.full_name || "User"}`,
-          date: new Date(t.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-          price: t.price
-        }));
-        setHistory(historyData);
-      } else {
-        setHistory([]);
-      }
+        .select("*, books(price)")
+        .eq("buyer_id", user.id);
+
+      const { data: sellerTx } = await supabase
+        .from("transactions")
+        .select("*, books(price)")
+        .eq("seller_id", user.id);
+
+      // Calculate stats
+      const soldCount = sellerTx?.filter(t => t.status === "completed").length || 0;
+      const purchaseCount = buyerTx?.filter(t => t.status === "completed").length || 0;
+      const totalEarnings = sellerTx
+        ?.filter(t => t.status === "completed")
+        .reduce((sum, t) => sum + (t.price || 0), 0) || 0;
+      const totalSpent = buyerTx
+        ?.filter(t => t.status === "completed")
+        .reduce((sum, t) => sum + (t.price || 0), 0) || 0;
 
       setStats({
         listed: booksData?.length || 0,
-        exchanged: historyData.length || 0,
-        wishlist: wishlistData?.length || 0
+        sold: soldCount,
+        purchases: purchaseCount,
+        wishlist: wishlistData?.length || 0,
+        totalEarnings,
+        totalSpent,
       });
     };
 
     loadProfileData();
   }, []);
-
-  const tabs = [
-    { key: "listed",   label: "My listed books" },
-    { key: "wishlist", label: "Wishlist"         },
-    { key: "history",  label: "History"          },
-    { key: "edit",     label: "Edit profile"     },
-  ];
-
-  const handleTabChange = (tab) => {
-    if (tab === "edit") setDraft(form);
-    setActiveTab(tab);
-  };
-
-  const handleBuy = (book) => navigate("/buybook", { state: { book } });
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -156,214 +133,213 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
     } else {
       setForm(draft);
       setSaveMessage("Profile saved successfully!");
+      setIsEditing(false);
     }
     setSaving(false);
     setTimeout(() => setSaveMessage(""), 3000);
   };
 
+  const StatCard = ({ icon: Icon, label, value, subtext, color }) => (
+    <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-gray-500 font-medium">{label}</p>
+          <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
+          {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
+        </div>
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          color.includes("blue") ? "bg-blue-100" :
+          color.includes("green") ? "bg-green-100" :
+          color.includes("amber") ? "bg-amber-100" :
+          color.includes("purple") ? "bg-purple-100" :
+          color.includes("red") ? "bg-red-100" :
+          "bg-gray-100"
+        }`}>
+          <Icon size={18} className={color} />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} cart={cart} wishlist={wishlist} />
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50">
+      <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} cart={cart} wishlist={[]} />
+      <div className="max-w-5xl mx-auto px-4 py-8">
 
         {/* Profile Hero */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 flex items-center gap-5 mb-6">
-          <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-medium shrink-0">
-            {form.name ? form.name[0].toUpperCase() : "U"}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-lg font-medium text-gray-900">{form.name || "Loading..."}</p>
-              <VerifiedBadge isVerified={form.is_verified} size="sm" />
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+          <div className="flex items-center gap-5">
+            <div className="w-20 h-20 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-2xl font-medium shrink-0">
+              {form.name ? form.name[0].toUpperCase() : "U"}
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">{form.email}</p>
-            <div className="flex gap-5 mt-2">
-              <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">{stats.listed}</span> listed</span>
-              <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">{stats.exchanged}</span> exchanged</span>
-              <span className="text-sm text-gray-500"><span className="font-medium text-gray-900">{stats.wishlist}</span> wishlist</span>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-xl font-medium text-gray-900">{form.name || "Loading..."}</p>
+                <VerifiedBadge isVerified={form.is_verified} size="sm" />
+              </div>
+              <p className="text-sm text-gray-500 mt-0.5">{form.email}</p>
+              {form.college && <p className="text-sm text-gray-500 mt-0.5">{form.college}</p>}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate("/sellbook")}
+                className="text-sm bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold rounded-lg px-4 py-2 hover:scale-105 transition shadow-sm shadow-blue-200"
+              >
+                + Sell a Book
+              </button>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="text-sm border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition"
+              >
+                {isEditing ? "Cancel" : "Edit Profile"}
+              </button>
             </div>
           </div>
-          <div className="ml-auto flex gap-2">
+
+          {/* Edit Profile Form */}
+          {isEditing && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              {saveMessage && (
+                <div className={`mb-4 text-sm px-4 py-2 rounded-lg ${
+                  saveMessage.includes("Error") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"
+                }`}>
+                  {saveMessage}
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1.5">Full name</label>
+                  <input
+                    type="text"
+                    value={draft.name}
+                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1.5">College / Institution</label>
+                  <input
+                    type="text"
+                    value={draft.college}
+                    onChange={(e) => setDraft({ ...draft, college: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="bg-gray-900 text-white text-sm font-medium px-6 py-2 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save changes"}
+                </button>
+                <button
+                  onClick={() => { setDraft(form); setIsEditing(false); }}
+                  className="text-sm border border-gray-300 rounded-lg px-5 py-2 hover:bg-gray-50 transition"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <StatCard
+            icon={BookOpen}
+            label="Listed Books"
+            value={stats.listed}
+            color="text-blue-600"
+          />
+          <StatCard
+            icon={Package}
+            label="Sold"
+            value={stats.sold}
+            color="text-green-600"
+          />
+          <StatCard
+            icon={ShoppingBag}
+            label="Purchases"
+            value={stats.purchases}
+            color="text-purple-600"
+          />
+          <StatCard
+            icon={Heart}
+            label="Wishlist"
+            value={stats.wishlist}
+            color="text-rose-600"
+          />
+          <StatCard
+            icon={CheckCircle}
+            label="Total Earnings"
+            value={`₹${stats.totalEarnings}`}
+            subtext="From sales"
+            color="text-emerald-600"
+          />
+          <StatCard
+            icon={Clock}
+            label="Total Spent"
+            value={`₹${stats.totalSpent}`}
+            subtext="On purchases"
+            color="text-amber-600"
+          />
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <button
               onClick={() => navigate("/my-books")}
-              className="text-sm bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold rounded-lg px-4 py-2 hover:scale-105 transition shadow-sm shadow-blue-200"
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition"
             >
-              Manage My Books
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <BookOpen size={18} className="text-blue-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Manage Books</span>
             </button>
             <button
-              onClick={() => navigate("/sellbook")}
-              className="text-sm border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition"
+              onClick={() => navigate("/orders")}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition"
             >
-              + Sell a Book
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <Package size={18} className="text-green-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Orders</span>
             </button>
             <button
-              onClick={() => handleTabChange("edit")}
-              className="text-sm border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition"
+              onClick={() => navigate("/cart")}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition"
             >
-              Edit profile
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                <ShoppingCart size={18} className="text-indigo-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Cart</span>
+            </button>
+            <button
+              onClick={() => navigate("/wishlist")}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-rose-300 hover:bg-rose-50 transition"
+            >
+              <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
+                <Heart size={18} className="text-rose-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Wishlist</span>
+            </button>
+            <button
+              onClick={() => navigate("/notifications")}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 hover:border-amber-300 hover:bg-amber-50 transition"
+            >
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-gray-700">Notifications</span>
             </button>
           </div>
         </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 mb-6">
-          {tabs.map((tab) => (
-            <button key={tab.key} onClick={() => handleTabChange(tab.key)}
-              className={`px-5 py-2.5 text-sm border-b-2 transition ${
-                activeTab === tab.key
-                  ? "border-gray-900 text-gray-900 font-medium"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
-              }`}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* My Listed Books */}
-        {activeTab === "listed" && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {listedBooks.length === 0 ? (
-              <div className="col-span-full text-center text-gray-500 py-8">No books listed yet</div>
-            ) : (
-              listedBooks.map((book) => (
-                <div key={book.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col">
-                  <div className={`w-full h-20 rounded-lg flex items-center justify-center text-xs font-medium mb-3 bg-indigo-100 text-indigo-700`}>
-                    {book.genre || book.category || "Book"}
-                  </div>
-                  <p className="text-sm font-medium text-gray-900 truncate">{book.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{book.author}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-500">Stock: {(book.quantity || 0)}</span>
-                    <span className={`inline-block text-xs px-2.5 py-0.5 rounded-md ${
-                      !book.is_available || (book.quantity || 0) === 0
-                        ? "bg-red-100 text-red-700"
-                        : book.quantity <= 3
-                        ? "bg-amber-100 text-amber-700"
-                        : statusStyles.available
-                    }`}>
-                      {!book.is_available || (book.quantity || 0) === 0 ? "Out of stock" : book.quantity <= 3 ? "Low stock" : "Available"}
-                    </span>
-                  </div>
-                  {book.is_available && (book.quantity || 0) > 0 && (
-                    <button onClick={() => handleBuy(book)}
-                      className="mt-3 w-full bg-indigo-600 text-white text-xs py-1.5 rounded-lg hover:bg-indigo-700 transition">
-                      Buy Book
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Wishlist */}
-        {activeTab === "wishlist" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {wishlist.length === 0 ? (
-              <div className="text-center text-gray-500 py-8 col-span-full">No books in wishlist</div>
-            ) : (
-              wishlist.map((book, idx) => (
-                <div key={book.wishlistId || book.id || `wishlist-${idx}`} className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-4">
-                  <div className="w-12 h-16 rounded-lg bg-purple-100 flex items-center justify-center shrink-0 shadow-sm border border-purple-200">
-                    <span className="text-purple-500 font-bold text-lg">{book.title?.[0] || "B"}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{book.title || "Unknown Book"}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{book.author || "Unknown"}</p>
-                    <p className="text-xs text-indigo-600 font-semibold mt-1">₹{book.price || "N/A"}</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 items-end shrink-0">
-                    <button onClick={() => handleBuy(book)}
-                      className="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition">
-                      Buy Book
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await supabase.from("wishlist").delete().eq("id", book.wishlistId);
-                        setWishlist(wishlist.filter((b) => b.wishlistId !== book.wishlistId));
-                      }}
-                      className="text-gray-400 hover:text-red-500 text-lg leading-none"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* History */}
-        {activeTab === "history" && (
-          <div className="flex flex-col gap-3">
-            {history.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">No transaction history yet</div>
-            ) : (
-              history.map((item) => (
-                <div key={item.id} className="bg-white border border-gray-200 rounded-2xl px-5 py-4 flex items-center gap-4">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 ${historyBg[item.type]}`}>
-                    {historyIcon[item.type]}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {item.type.charAt(0).toUpperCase() + item.type.slice(1)} · {item.title}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {item.with} {item.price ? `· ₹${item.price}` : ""}
-                    </p>
-                  </div>
-                  <span className="ml-auto text-xs text-gray-400 whitespace-nowrap">{item.date}</span>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Edit Profile */}
-        {activeTab === "edit" && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-lg">
-            {saveMessage && (
-              <div className={`mb-4 text-sm px-4 py-2 rounded-lg ${
-                saveMessage.includes("Error") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"
-              }`}>
-                {saveMessage}
-              </div>
-            )}
-            {[
-              { label: "Full name",             key: "name",    type: "text"  },
-              { label: "Email",                 key: "email",   type: "email", disabled: true },
-              { label: "College / Institution", key: "college", type: "text"  },
-            ].map(({ label, key, type, disabled }) => (
-              <div key={key} className="mb-5">
-                <label className="text-xs text-gray-500 block mb-1.5">{label}</label>
-                <input
-                  type={type}
-                  value={draft[key]}
-                  readOnly={disabled}
-                  onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
-                  className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 ${
-                    disabled ? "bg-gray-100 text-gray-500" : "bg-gray-50"
-                  }`}
-                />
-              </div>
-            ))}
-            <div className="flex gap-3">
-              <button
-                onClick={handleSaveProfile}
-                disabled={saving}
-                className="bg-gray-900 text-white text-sm font-medium px-6 py-2 rounded-lg hover:bg-gray-700 transition disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save changes"}
-              </button>
-              <button
-                onClick={() => setDraft(form)}
-                className="text-sm border border-gray-300 rounded-lg px-5 py-2 hover:bg-gray-50 transition"
-              >
-                Discard
-              </button>
-            </div>
-          </div>
-        )}
 
       </div>
       <Footer />
