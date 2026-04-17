@@ -39,6 +39,8 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     quantity: "1",
   });
 
+  const [userProfile, setUserProfile] = useState(null);
+
   const [dbGenres, setDbGenres] = useState([]);
   const [showGenreDropdown, setShowGenreDropdown] = useState(false);
   const [genreInput, setGenreInput] = useState("");
@@ -140,6 +142,32 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
     // Refresh genres list to include newly added genres
     fetchGenres();
   };
+
+  // Load user profile on mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, full_name, email, phone, college, location, bio")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          setUserProfile(profile);
+          // Auto-fill name, phone, email from profile
+          setForm(prev => ({
+            ...prev,
+            name: profile.full_name || profile.name || "",
+            email: profile.email || "",
+            phone: profile.phone || "",
+          }));
+        }
+      }
+    };
+    loadUserProfile();
+  }, []);
 
   // Refresh genres on mount
   useEffect(() => {
@@ -245,11 +273,16 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, email")
-        .eq("id", user.id)
-        .single();
+      // Use userProfile state if available, otherwise fetch
+      let profile = userProfile;
+      if (!profile) {
+        const { data: fetchedProfile } = await supabase
+          .from("profiles")
+          .select("full_name, name, email, phone, college, location")
+          .eq("id", user.id)
+          .single();
+        profile = fetchedProfile;
+      }
 
       let image_url = null;
       const fileInput = fileInputRef.current;
@@ -269,12 +302,14 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
         .from("books")
         .insert({
           seller_id: user.id,
-          seller_name: form.name || profile?.full_name,
-          seller_phone: form.phone,
-          seller_email: form.email || profile?.email,
+          seller_name: profile?.full_name || profile?.name || form.name,
+          seller_phone: profile?.phone || form.phone,
+          seller_email: profile?.email || form.email,
           seller_address: form.address,
           seller_city: form.city,
           seller_pincode: form.pincode,
+          seller_college: profile?.college,
+          seller_location: profile?.location,
           title: form.title,
           author: form.author,
           author_id: authorId,
@@ -810,33 +845,36 @@ export default function SellBook({ isLoggedIn, onLogout, cart, wishlist }) {
                 <label className={labelClass}>Full Name</label>
                 <input
                   type="text"
-                  placeholder="Your name"
+                  placeholder="Auto-filled from profile"
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className={inputClass}
+                  readOnly
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-400 mt-1">From your profile</p>
               </div>
 
               <div>
                 <label className={labelClass}>Phone Number</label>
                 <input
                   type="tel"
-                  placeholder="+91 XXXXX XXXXX"
+                  placeholder="Auto-filled from profile"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className={inputClass}
+                  readOnly
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-400 mt-1">From your profile</p>
               </div>
 
               <div className="sm:col-span-2">
                 <label className={labelClass}>Email</label>
                 <input
                   type="email"
-                  placeholder="you@email.com"
+                  placeholder="Auto-filled from profile"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className={inputClass}
+                  readOnly
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
+                <p className="text-xs text-gray-400 mt-1">From your profile</p>
               </div>
 
               <div className="sm:col-span-2">

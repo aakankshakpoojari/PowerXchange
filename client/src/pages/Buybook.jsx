@@ -22,39 +22,34 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setCurrentUserId(user.id);
 
-      // First try with profiles join
+      // Fetch book WITHOUT profiles join to avoid RLS issues
       const { data, error } = await supabase
         .from("books")
-        .select("*, profiles(name, full_name, email, college)")
+        .select("*")
         .eq("id", id)
         .single();
 
       if (!error && data) {
-        const profile = data.profiles || {};
+        console.log("Book fetched:", {
+          id: data.id,
+          title: data.title,
+          seller_id: data.seller_id,
+          seller_name: data.seller_name,
+          seller_college: data.seller_college
+        });
         setBook({
           ...data,
-          seller_name: data.seller_name || profile.name || profile.full_name || "Seller",
-          seller_email: data.seller_email || profile.email,
-          seller_college: data.seller_college || profile.college,
+          seller_id: data.seller_id,
+          seller_name: data.seller_name || "Seller",
+          seller_email: data.seller_email,
+          seller_college: data.seller_college,
           seller_phone: data.seller_phone,
           seller_address: data.seller_address,
           seller_city: data.seller_city,
           seller_pincode: data.seller_pincode,
         });
       } else {
-        // Fallback: fetch without join in case profiles RLS blocks it
-        const { data: bookOnly } = await supabase
-          .from("books")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (bookOnly) {
-          setBook({
-            ...bookOnly,
-            seller_name: bookOnly.seller_name || "Seller",
-          });
-        }
+        console.error("Error fetching book:", error);
       }
       setLoading(false);
     };
@@ -103,10 +98,22 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
 
     const newQuantity = Math.max(0, (book.quantity ?? 1) - 1);
 
+    // Validate seller_id - re-fetch from books table to ensure we have the latest data
+    const { data: freshBookData } = await supabase
+      .from("books")
+      .select("seller_id")
+      .eq("id", book.id)
+      .single();
+
+    if (!freshBookData || !freshBookData.seller_id) {
+      alert("Error: This book does not have a valid seller. Please contact support.");
+      return;
+    }
+
     const { error: transactionError } = await supabase.from("transactions").insert({
       book_id: book.id,
       buyer_id: user.id,
-      seller_id: book.seller_id,
+      seller_id: freshBookData.seller_id,
       price: book.price,
       status: "pending",
       notes: mode === "exchange" ? `[EXCHANGE: ${exchangeBook}] ${message}` : message,

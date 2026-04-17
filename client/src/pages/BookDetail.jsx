@@ -24,66 +24,40 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
 
   useEffect(() => {
     const fetchBook = async () => {
+      // Fetch book WITHOUT profiles join to avoid RLS issues
       const { data, error } = await supabase
         .from("books")
-        .select("*, profiles(name, email, college)")
+        .select("*")
         .eq("id", id)
         .single();
 
       if (!error && data) {
-        // If seller_id is missing, try to resolve it from profiles via email or name
-        let resolvedSellerId = data.seller_id;
-        if (!resolvedSellerId) {
-          // Try matching seller by email first, then by full_name
-          if (data.seller_email) {
-            const { data: sp } = await supabase.from("profiles").select("id").eq("email", data.seller_email).maybeSingle();
-            resolvedSellerId = sp?.id || null;
-          }
-          if (!resolvedSellerId && data.seller_name) {
-            const { data: sp } = await supabase.from("profiles").select("id").eq("full_name", data.seller_name).maybeSingle();
-            resolvedSellerId = sp?.id || null;
-          }
-        }
-        setBook({
+        console.log("Book data fetched:", data);
+        console.log("seller_id:", data.seller_id);
+        console.log("seller_name:", data.seller_name);
+        console.log("seller_college:", data.seller_college);
+        console.log("seller_city:", data.seller_city);
+        console.log("seller_address:", data.seller_address);
+
+        const bookData = {
           ...data,
-          seller_id: resolvedSellerId,
+          seller_id: data.seller_id,
           imageUrl: data.image_url || "https://placehold.co/260x380?text=Book",
           listingType: data.price === 0 ? "exchange" : "sell",
           genre: data.genre || data.category || "General",
           available: data.is_available === true,
-          seller_name: data.seller_name || data.profiles?.name || "Seller",
-          seller_email: data.seller_email || data.profiles?.email,
-          seller_college: data.profiles?.college,
-        });
+          seller_name: data.seller_name?.trim() || "Seller",
+          seller_email: data.seller_email,
+          seller_college: data.seller_college || "N/A",
+          seller_phone: data.seller_phone,
+          seller_address: data.seller_address,
+          seller_city: data.seller_city,
+          seller_pincode: data.seller_pincode,
+        };
+        console.log("Setting book state:", bookData);
+        setBook(bookData);
       } else {
-        // Fallback: fetch without the join in case profiles RLS blocks it
-        const { data: bookOnly } = await supabase
-          .from("books")
-          .select("*")
-          .eq("id", id)
-          .single();
-        if (bookOnly) {
-          let resolvedSellerId = bookOnly.seller_id;
-          if (!resolvedSellerId) {
-            if (bookOnly.seller_email) {
-              const { data: sp } = await supabase.from("profiles").select("id").eq("email", bookOnly.seller_email).maybeSingle();
-              resolvedSellerId = sp?.id || null;
-            }
-            if (!resolvedSellerId && bookOnly.seller_name) {
-              const { data: sp } = await supabase.from("profiles").select("id").eq("full_name", bookOnly.seller_name).maybeSingle();
-              resolvedSellerId = sp?.id || null;
-            }
-          }
-          setBook({
-            ...bookOnly,
-            seller_id: resolvedSellerId,
-            imageUrl: bookOnly.image_url || "https://placehold.co/260x380?text=Book",
-            listingType: bookOnly.price === 0 ? "exchange" : "sell",
-            genre: bookOnly.genre || bookOnly.category || "General",
-            available: bookOnly.is_available === true,
-            seller_name: bookOnly.seller_name || "Seller",
-          });
-        }
+        console.error("Error fetching book:", error);
       }
       setLoading(false);
     };
@@ -110,26 +84,6 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
 
     getCurrentUser();
   }, []);
-
-  // Re-attempt seller_id resolution after book loads (in case anon RLS blocked it earlier)
-  useEffect(() => {
-    if (!book || book.seller_id) return; // already resolved or no book
-    const resolveSeller = async () => {
-      let resolved = null;
-      if (book.seller_email) {
-        const { data } = await supabase.from("profiles").select("id").eq("email", book.seller_email).maybeSingle();
-        resolved = data?.id || null;
-      }
-      if (!resolved && book.seller_name) {
-        const { data } = await supabase.from("profiles").select("id").eq("full_name", book.seller_name).maybeSingle();
-        resolved = data?.id || null;
-      }
-      if (resolved) {
-        setBook(prev => ({ ...prev, seller_id: resolved }));
-      }
-    };
-    resolveSeller();
-  }, [book?.id, currentUser]); // re-run when currentUser is set (auth session available)
 
   if (loading) {
     return (
