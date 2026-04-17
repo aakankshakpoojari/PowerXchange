@@ -174,6 +174,74 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
     setActionLoading(null);
   };
 
+  const handleCancel = async (tx) => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    setActionLoading(tx.id);
+    try {
+      // Update transaction status
+      const { error } = await supabase
+        .from("transactions")
+        .update({ status: "cancelled" })
+        .eq("id", tx.id);
+
+      if (error) throw error;
+
+      // Send notification to seller
+      const sellerId = tx.seller_id;
+      console.log("Cancel transaction:", tx);
+      console.log("Seller ID:", sellerId);
+
+      if (!sellerId) {
+        console.error("No seller_id found for transaction", tx.id);
+      } else {
+        const bookTitle = tx.books?.title || "the book";
+        const buyerName = tx.buyer?.full_name || tx.buyer?.name || "The buyer";
+
+        const { data: notifData, error: notifError } = await supabase
+          .from("notifications")
+          .insert({
+            user_id: sellerId,
+            type: "order_cancelled",
+            title: "Order was cancelled",
+            message: `${buyerName} has cancelled their order for "${bookTitle}".`,
+            transaction_id: tx.id,
+          })
+          .select();
+
+        if (notifError) {
+          console.error("Notification insert error:", notifError);
+          alert("Order cancelled but notification failed: " + notifError.message);
+        } else {
+          console.log("Notification sent successfully:", notifData);
+        }
+      }
+
+      // Restore book quantity
+      if (tx.books?.id) {
+        const { data: book } = await supabase
+          .from("books")
+          .select("quantity")
+          .eq("id", tx.books.id)
+          .single();
+
+        if (book) {
+          await supabase
+            .from("books")
+            .update({ quantity: (book.quantity || 0) + 1, is_available: true })
+            .eq("id", tx.books.id);
+        }
+      }
+
+      setSuccessMsg("Order cancelled. The seller has been notified.");
+      setTimeout(() => setSuccessMsg(""), 3000);
+      await loadData();
+    } catch (err) {
+      console.error("Full cancel error:", err);
+      alert("Error cancelling order: " + err.message);
+    }
+    setActionLoading(null);
+  };
+
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString("en-IN", {
       day: "numeric", month: "short", year: "numeric",
@@ -296,6 +364,18 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
                       Decline
                     </button>
                   </>
+                )}
+
+                {/* Cancel for buyer on pending orders */}
+                {role === "buyer" && tx.status === "pending" && (
+                  <button
+                    onClick={() => handleCancel(tx)}
+                    disabled={actionLoading === tx.id}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 border border-red-200 transition disabled:opacity-50"
+                  >
+                    <XCircle size={14} />
+                    Cancel Order
+                  </button>
                 )}
 
                 {/* View Details */}
