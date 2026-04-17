@@ -60,7 +60,10 @@ export default function AdminUsers() {
     setActionLoading(true);
     const newStatus = currentStatus === "approved" ? "pending" : "approved";
     const { error } = await supabase.from("profiles").update({ status: newStatus }).eq("id", userId);
-    if (!error) fetchUsers();
+    if (!error) {
+      fetchUsers();
+      if (selectedUser?.id === userId) setSelectedUser(prev => ({ ...prev, status: newStatus }));
+    }
     setActionLoading(false);
   }
 
