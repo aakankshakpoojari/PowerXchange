@@ -255,7 +255,7 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900">{book.seller_name || "Seller"}</p>
-            <p className="text-xs text-gray-500">{book.seller_college || "College info not available"}</p>
+            <p className="text-xs text-gray-500">{book.college || book.seller_college || "College info not available"}</p>
           </div>
         </div>
 

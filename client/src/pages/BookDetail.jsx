@@ -220,7 +220,7 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
                 </div>
                 <div>
                   <p className="font-semibold text-blue-950 text-base">{book.seller_name || "Seller"}</p>
-                  <p className="text-sm text-slate-400">{book.seller_college || "N/A"}</p>
+                  <p className="text-sm text-slate-400">{book.college || book.seller_college || "N/A"}</p>
                 </div>
               </div>
               <button

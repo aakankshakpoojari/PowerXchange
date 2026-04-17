@@ -201,7 +201,7 @@ export default function TransactionDetail({ isLoggedIn, onLogout, cart, wishlist
                 {isBuyer && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium normal-case">You</span>}
               </h2>
               <div className="space-y-2.5">
-                <p className="text-sm font-semibold text-gray-900">{buyer.full_name || buyer.name || "N/A"}</p>
+                <p className="text-sm font-semibold text-gray-900">{buyer.full_name || "N/A"}</p>
                 {buyer.college && (
                   <p className="text-sm text-gray-500 flex items-center gap-2">
                     <MapPin size={13} className="text-gray-400" />
@@ -231,23 +231,23 @@ export default function TransactionDetail({ isLoggedIn, onLogout, cart, wishlist
                 {!isBuyer && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium normal-case">You</span>}
               </h2>
               <div className="space-y-2.5">
-                <p className="text-sm font-semibold text-gray-900">{seller.full_name || seller.name || book.seller_name || "N/A"}</p>
-                {(seller.college) && (
+                <p className="text-sm font-semibold text-gray-900">{seller.full_name || book.seller_name || "N/A"}</p>
+                {seller.college && (
                   <p className="text-sm text-gray-500 flex items-center gap-2">
                     <MapPin size={13} className="text-gray-400" />
                     {seller.college}
                   </p>
                 )}
-                {(seller.email || book.seller_email) && (
+                {seller.email && (
                   <p className="text-sm text-gray-500 flex items-center gap-2">
                     <Mail size={13} className="text-gray-400" />
-                    {seller.email || book.seller_email}
+                    {seller.email}
                   </p>
                 )}
-                {(seller.phone || book.seller_phone) && (
+                {seller.phone && (
                   <p className="text-sm text-gray-500 flex items-center gap-2">
                     <Phone size={13} className="text-gray-400" />
-                    {seller.phone || book.seller_phone}
+                    {seller.phone}
                   </p>
                 )}
                 {book.seller_address && (
