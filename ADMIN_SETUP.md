@@ -16,7 +16,7 @@ This document explains how to set up and use the Admin Dashboard for PowerXchang
 - Filter by: All, Verified, Pending
 - Search by name, email, or college
 - **Verify/Unverify** users
-- **Suspend/Unsuspend** users
+- **Block/Unblock** users
 - **Delete** users
 
 ### Book Management (`/admin/books`)
