@@ -39,7 +39,7 @@ export default function AdminUsers() {
       let query = supabase.from("profiles").select("*");
       if (filter === "verified")  query = query.eq("status", "approved");
       else if (filter === "pending") query = query.eq("status", "pending");
-      else if (filter === "blocked") query = query.eq("is_blocked", true);
+      else if (filter === "suspended") query = query.eq("is_blocked", true);
       query = query.order("created_at", { ascending: false });
       const { data, error } = await query;
       if (error) console.error("Error fetching users:", error);
@@ -127,7 +127,7 @@ export default function AdminUsers() {
             { label: "Total Users",   value: users.length,                                    color: "indigo" },
             { label: "Verified",      value: users.filter(u => u.status === "approved").length, color: "green" },
             { label: "Pending",       value: users.filter(u => u.status === "pending").length,  color: "yellow" },
-            { label: "Blocked",       value: users.filter(u => u.is_blocked).length,            color: "red" },
+            { label: "Suspended",       value: users.filter(u => u.is_blocked).length,            color: "red" },
           ].map(stat => (
             <div key={stat.label} className="bg-white rounded-xl shadow-sm p-4 text-center">
               <p className={`text-2xl font-bold text-${stat.color}-600`}>{stat.value}</p>
@@ -139,7 +139,7 @@ export default function AdminUsers() {
         {/* Filters + Search */}
         <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
           <div className="flex gap-2 flex-wrap">
-            {["all", "verified", "pending", "blocked"].map(f => (
+            {["all", "verified", "pending", "suspended"].map(f => (
               <button key={f} onClick={() => setFilter(f)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition capitalize ${
                   filter === f ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -170,7 +170,7 @@ export default function AdminUsers() {
                     <th className="px-6 py-3 text-left">College</th>
                     <th className="px-6 py-3 text-left">Role</th>
                     <th className="px-6 py-3 text-left">Status</th>
-                    <th className="px-6 py-3 text-left">Blocked</th>
+                    <th className="px-6 py-3 text-left">Suspended</th>
                     <th className="px-6 py-3 text-left">Joined</th>
                     <th className="px-6 py-3 text-left">Actions</th>
                   </tr>
@@ -218,7 +218,7 @@ export default function AdminUsers() {
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                           user.is_blocked ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-700"
-                        }`}>{user.is_blocked ? "Blocked" : "Active"}</span>
+                        }`}>{user.is_blocked ? "Suspended" : "Active"}</span>
                       </td>
                       <td className="px-6 py-4 text-gray-500 text-xs">
                         {user.created_at ? new Date(user.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
@@ -238,7 +238,7 @@ export default function AdminUsers() {
                                 ? "bg-green-100 text-green-700 hover:bg-green-200"
                                 : "bg-orange-100 text-orange-700 hover:bg-orange-200"
                             }`}>
-                            {user.is_blocked ? "Unblock" : "Block"}
+                            {user.is_blocked ? "Unsuspend" : "Suspend"}
                           </button>
                         </div>
                       </td>
@@ -318,7 +318,7 @@ export default function AdminUsers() {
                     ["Location", selectedUser.location || "—"],
                     ["Role",     selectedUser.role     || "user"],
                     ["Status",   selectedUser.status   || "—"],
-                    ["Blocked",  selectedUser.is_blocked ? "Yes" : "No"],
+                    ["Suspended",  selectedUser.is_blocked ? "Yes" : "No"],
                     ["Joined",   selectedUser.created_at
                       ? new Date(selectedUser.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
                       : "—"],
@@ -365,7 +365,7 @@ export default function AdminUsers() {
                         ? "bg-green-100 text-green-700 hover:bg-green-200"
                         : "bg-orange-100 text-orange-700 hover:bg-orange-200"
                     }`}>
-                    {selectedUser.is_blocked ? "Unblock User" : "Block User"}
+                    {selectedUser.is_blocked ? "Unsuspend User" : "Suspend User"}
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(true)}

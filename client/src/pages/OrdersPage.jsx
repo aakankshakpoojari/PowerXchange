@@ -179,7 +179,7 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
         <div className="flex gap-4">
           {/* Book Cover */}
           <div
-            className="w-16 h-22 rounded-xl overflow-hidden bg-blue-50 border border-blue-100 flex-shrink-0 cursor-pointer"
+            className="w-28 h-40 rounded-xl overflow-hidden bg-blue-50 border border-blue-100 flex-shrink-0 cursor-pointer"
             onClick={() => book.id && navigate(`/books/${book.id}`)}
           >
             {book.image_url ? (
@@ -187,7 +187,7 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
                 src={book.image_url}
                 alt={book.title}
                 className="w-full h-full object-cover"
-                onError={(e) => { e.target.src = "https://placehold.co/64x96?text=Book"; }}
+                onError={(e) => { e.target.src = "https://placehold.co/112x160?text=Book"; }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-blue-400 text-xs font-medium">
@@ -432,4 +432,4 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
       <Footer />
     </div>
   );
-}
+} 
