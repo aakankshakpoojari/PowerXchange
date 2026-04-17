@@ -11,7 +11,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [editingBook, setEditingBook] = useState(null);
-  const [editForm, setEditForm] = useState({ genre: "", condition: "", is_available: true, image_url: "" });
+  const [editForm, setEditForm] = useState({ genre: "", condition: "", price: "", is_available: true, image_url: "" });
   const [updating, setUpdating] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
@@ -73,6 +73,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
     setEditForm({
       genre: book.genre || "",
       condition: book.condition || "",
+      price: book.price?.toString() || "0",
       is_available: book.is_available !== false,
       image_url: book.image_url || "",
     });
@@ -102,6 +103,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
         .update({
           genre: editForm.genre,
           condition: editForm.condition,
+          price: parseFloat(editForm.price) || 0,
           is_available: editForm.is_available,
           image_url: newImageUrl,
         })
@@ -115,6 +117,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
           ...b,
           genre: editForm.genre,
           condition: editForm.condition,
+          price: parseFloat(editForm.price) || 0,
           is_available: editForm.is_available,
           image_url: newImageUrl,
         } : b));
@@ -130,7 +133,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
 
   const handleCancelEdit = () => {
     setEditingBook(null);
-    setEditForm({ genre: "", condition: "", is_available: true, image_url: "" });
+    setEditForm({ genre: "", condition: "", price: "", is_available: true, image_url: "" });
     setImagePreview(null);
   };
 
@@ -394,6 +397,22 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
                               {CONDITIONS.map(c => <option key={c} value={c}>{CONDITION_LABELS[c]}</option>)}
                             </select>
                           </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 block mb-1 font-medium">Price (Rs.)</label>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={editForm.price}
+                              onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                              className="w-full border border-gray-300 rounded-lg pl-6 pr-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">Set to 0 for exchange only</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-gray-500 font-medium">Availability:</label>

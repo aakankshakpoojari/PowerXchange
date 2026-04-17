@@ -289,6 +289,19 @@ CREATE TRIGGER update_reports_updated_at
 -- Enable RLS on book_statistics
 ALTER TABLE book_statistics ENABLE ROW LEVEL SECURITY;
 
+-- RLS policies for book_statistics
+CREATE POLICY "Book statistics are viewable by everyone"
+  ON book_statistics FOR SELECT
+  USING (true);
+
+CREATE POLICY "Anyone can insert book statistics"
+  ON book_statistics FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Anyone can update book statistics"
+  ON book_statistics FOR UPDATE
+  USING (true);
+
 -- ============================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ============================================

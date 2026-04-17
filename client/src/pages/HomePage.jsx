@@ -474,10 +474,19 @@ function SearchResults({ query, onBookClick, booksToUse }) {
 
 function BookGridSlider({ title, data, onBookClick }) {
   const ref = useRef(null);
+  const autoScrollRef = useRef(null);
+
+  // Pause auto-scroll on user interaction
+  const pauseAutoScroll = () => {
+    if (autoScrollRef.current) {
+      clearInterval(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
+  };
 
   // Infinite circular auto-scroll for trending books
   useEffect(() => {
-    const scrollInterval = setInterval(() => {
+    autoScrollRef.current = setInterval(() => {
       if (ref.current) {
         const { scrollLeft, scrollWidth, clientWidth } = ref.current;
         const maxScroll = scrollWidth - clientWidth;
@@ -498,16 +507,22 @@ function BookGridSlider({ title, data, onBookClick }) {
       }
     }, 30);
 
-    return () => clearInterval(scrollInterval);
+    return () => {
+      if (autoScrollRef.current) {
+        clearInterval(autoScrollRef.current);
+      }
+    };
   }, []);
 
   const handleScrollLeft = () => {
+    pauseAutoScroll();
     if (ref.current) {
       ref.current.scrollBy({ left: -220, behavior: 'smooth' });
     }
   };
 
   const handleScrollRight = () => {
+    pauseAutoScroll();
     if (ref.current) {
       const { scrollLeft, scrollWidth, clientWidth } = ref.current;
       const maxScroll = scrollWidth - clientWidth;
