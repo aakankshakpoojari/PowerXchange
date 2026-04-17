@@ -34,12 +34,18 @@ function Login({ onLogin }) {
     if (data.user) {
       if (onLogin) onLogin();
 
-      // Check admin via profiles.role column
+      // Check if user is suspended
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, is_suspended")
         .eq("id", data.user.id)
         .single();
+
+      if (profileData?.is_suspended) {
+        await supabase.auth.signOut();
+        setError("Your account has been suspended. Please contact support for assistance.");
+        return;
+      }
 
       if (profileData?.role === "admin") {
         navigate("/admin");
