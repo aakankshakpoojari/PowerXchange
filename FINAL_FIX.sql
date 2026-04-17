@@ -3,6 +3,29 @@
 -- Run this ONE script to fix all issues
 -- ============================================
 
+-- 0. Fix books with invalid seller_id (referencing non-existent profiles)
+-- This must run BEFORE recreating the transactions table
+
+-- First, show what will be deleted
+SELECT 'Books with invalid seller_id to be deleted:' as info;
+SELECT id, title, seller_id,
+  CASE
+    WHEN seller_id IS NULL THEN 'seller_id is NULL'
+    WHEN seller_id NOT IN (SELECT id FROM profiles) THEN 'seller_id not in profiles'
+    ELSE 'other issue'
+  END as issue
+FROM books
+WHERE seller_id IS NULL
+   OR seller_id NOT IN (SELECT id FROM profiles);
+
+-- Now delete them
+DELETE FROM books
+WHERE seller_id IS NULL
+   OR seller_id NOT IN (SELECT id FROM profiles);
+
+-- Verify deletion
+SELECT 'Remaining books:' as info, COUNT(*) as count FROM books;
+
 -- 1. First, ensure we have the correct transactions table structure
 -- Drop and recreate with proper RLS setup
 DROP TABLE IF EXISTS transactions CASCADE;
