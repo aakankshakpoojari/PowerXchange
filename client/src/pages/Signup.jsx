@@ -18,7 +18,6 @@ function Signup() {
   const [password, setPassword] = useState("");
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
-  const [success,  setSuccess]  = useState(false);
   const [photoPreview,  setPhotoPreview]  = useState(null);
   const [idCardPreview, setIdCardPreview] = useState(null);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -80,9 +79,7 @@ function Signup() {
       }
 
       if (!authData.user) {
-        // Supabase returns no user when email confirmation is required and
-        // the user already exists but hasn't confirmed yet.
-        setSuccess(true);
+        setError("User registration failed. Please try again.");
         setLoading(false);
         return;
       }
@@ -143,8 +140,9 @@ function Signup() {
         }
       }
 
-      setSuccess(true);
-      setLoading(false);
+      // Redirect to login after successful signup
+      alert("Account created successfully! Please login.");
+      navigate("/login");
     } catch (err) {
       setError("Signup error: " + err.message);
       setUploadingImages(false);
@@ -152,29 +150,6 @@ function Signup() {
     }
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Navbar isLoggedIn={false} />
-        <div className="flex-1 flex items-center justify-center py-12">
-          <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md text-center">
-            <div className="text-5xl mb-4">📧</div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">Check your email!</h2>
-            <p className="text-gray-500 text-sm mb-6">
-              We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account, then login.
-            </p>
-            <button
-              onClick={() => navigate("/login")}
-              className="bg-indigo-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-indigo-700"
-            >
-              Go to Login
-            </button>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

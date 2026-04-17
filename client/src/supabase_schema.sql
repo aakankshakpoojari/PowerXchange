@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   location TEXT,
   bio TEXT,
   phone TEXT,
-  is_verified BOOLEAN DEFAULT false,
   is_blocked BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -21,7 +20,6 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- Index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
 CREATE INDEX IF NOT EXISTS idx_profiles_college ON profiles(college);
-CREATE INDEX IF NOT EXISTS idx_profiles_verified ON profiles(is_verified);
 
 -- ============================================
 -- 2. BOOKS TABLE

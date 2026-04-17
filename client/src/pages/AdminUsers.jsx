@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
-import VerifiedBadge from "../components/VerifiedBadge";
 
 export default function AdminUsers() {
   const navigate = useNavigate();
@@ -195,10 +194,7 @@ export default function AdminUsers() {
                             </div>
                           )}
                           <div>
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-medium text-gray-900">{user.full_name || "—"}</p>
-                              <VerifiedBadge isVerified={user.is_verified} size="xs" />
-                            </div>
+                            <p className="font-medium text-gray-900">{user.full_name || "—"}</p>
                             <p className="text-xs text-gray-400">{user.email}</p>
                           </div>
                         </div>
@@ -302,10 +298,7 @@ export default function AdminUsers() {
                     </div>
                   )}
                   <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-gray-900 text-lg">{selectedUser.full_name || "—"}</p>
-                      <VerifiedBadge isVerified={selectedUser.is_verified} size="sm" />
-                    </div>
+                    <p className="font-bold text-gray-900 text-lg">{selectedUser.full_name || "—"}</p>
                     <p className="text-sm text-gray-400">{selectedUser.email}</p>
                     {selectedUser.usn && (
                       <p className="text-xs text-indigo-500 font-medium mt-0.5">USN: {selectedUser.usn}</p>

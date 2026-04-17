@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import VerifiedBadge from "../components/VerifiedBadge";
 import { Package, ShoppingBag, CheckCircle, Clock, Heart, BookOpen, ShoppingCart } from "lucide-react";
 
 
@@ -22,7 +21,6 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
     name: "",
     email: "",
     college: "",
-    is_verified: false,
   });
   const [draft, setDraft] = useState(form);
   const [userId, setUserId] = useState(null);
@@ -51,7 +49,6 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
           name: profileData.full_name || user.user_metadata?.full_name || "User",
           email: profileData.email || user.email || "",
           college: profileData.college || user.user_metadata?.college || "",
-          is_verified: profileData.is_verified || false,
         };
         setForm(userData);
         setDraft(userData);
@@ -173,12 +170,11 @@ export default function Profile({ isLoggedIn, onLogout, cart }) {
               {form.name ? form.name[0].toUpperCase() : "U"}
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div>
                 <p className="text-xl font-medium text-gray-900">{form.name || "Loading..."}</p>
-                <VerifiedBadge isVerified={form.is_verified} size="sm" />
+                <p className="text-sm text-gray-500 mt-0.5">{form.email}</p>
+                {form.college && <p className="text-sm text-gray-500 mt-0.5">{form.college}</p>}
               </div>
-              <p className="text-sm text-gray-500 mt-0.5">{form.email}</p>
-              {form.college && <p className="text-sm text-gray-500 mt-0.5">{form.college}</p>}
             </div>
             <div className="flex gap-2">
               <button
