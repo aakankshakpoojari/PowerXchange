@@ -188,8 +188,8 @@ export default function App() {
 
   if (authState === "loading") {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-        <div className="text-blue-400 text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-blue-400 dark:text-blue-300 text-lg">Loading...</div>
       </div>
     );
   }
