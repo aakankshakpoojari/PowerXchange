@@ -1,2 +1,2 @@
 # POWERXCHANGE
-Website : [My Website]([https://example.com](https://power-xchange.vercel.app/))
+Website : [POWERXCHANGE](https://power-xchange.vercel.app/)
