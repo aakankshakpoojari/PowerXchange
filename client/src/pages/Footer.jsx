@@ -23,7 +23,7 @@ export default function Footer() {
           <div>
             <p className="text-cyan-400 text-xs font-bold tracking-widest uppercase mb-4">Information</p>
             {[
-              { label: "Privacy Policy", path: "/privacy-policy" },
+              { label: "Privacy Policy", path: "/privacy" },
               { label: "Terms & Conditions", path: "/terms" },
             ].map(item => (
               <p key={item.label} onClick={() => navigate(item.path)}

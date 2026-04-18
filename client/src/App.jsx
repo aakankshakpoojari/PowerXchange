@@ -27,7 +27,7 @@ import OrdersPage from "./pages/OrdersPage";
 import TransactionDetail from "./pages/TransactionDetail";
 import NotificationsPage from "./pages/NotificationsPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Privacy from "./pages/Privacy";
 import FAQ from "./pages/FAQ";
 import Blog from "./pages/Blog";
 
@@ -246,6 +246,7 @@ export default function App() {
         <Route path="/admin/transactions" element={requireAdmin(<AdminTransactions {...sharedProps} />)} />
         <Route path="/admin/reports"     element={requireAdmin(<AdminReports   {...sharedProps} />)} />
         <Route path="/terms"          element={<TermsAndConditions {...sharedProps} />} />
+        <Route path="/privacy"        element={<Privacy              {...sharedProps} />} />
         <Route path="/faq"            element={<FAQ                {...sharedProps} />} />
         <Route path="/blog"           element={<Blog               {...sharedProps} />} />
         <Route path="*"            element={<Navigate to="/" replace />} />
