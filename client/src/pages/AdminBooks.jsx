@@ -78,7 +78,8 @@ export default function AdminBooks() {
   const filteredBooks = books.filter((book) =>
     book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    book.seller_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    book.seller_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    book.genre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -173,7 +174,7 @@ export default function AdminBooks() {
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 mb-1 truncate">{book.title}</h3>
                   <p className="text-sm text-gray-600 mb-2">
-                    by <AuthorName authorName={book.author} authorId={book.author_id} />
+                    by <AuthorName authorName={book.author || "Unknown"} authorId={book.author_id} />
                   </p>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-lg font-bold text-indigo-600">
@@ -189,12 +190,12 @@ export default function AdminBooks() {
                   </div>
                   <div className="text-xs text-gray-500 mb-3">
                     <p>
-                      Seller: <UserBadge userName={book.profiles?.full_name || book.seller_name || "Unknown"} userId={book.profiles?.id || book.seller_id} />
+                      Seller: <UserBadge userName={book.seller_name || "Unknown"} userId={book.seller_id} />
                     </p>
-                    <p>College: {book.profiles?.college || "N/A"}</p>
+                    <p>College: {book.seller_college || book.profiles?.college || "N/A"}</p>
                   </div>
                   <p className="text-xs text-gray-400 mb-4">
-                    Condition: {book.condition} | Category: {book.category}
+                    Condition: {book.condition || "N/A"} | Genre: {book.genre || "N/A"}
                   </p>
                   <div className="flex gap-2">
                     <button
