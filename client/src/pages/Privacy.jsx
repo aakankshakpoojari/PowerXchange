@@ -19,7 +19,7 @@ export default function PrivacyPolicy({ isLoggedIn, onLogout, cart, wishlist }) 
         </button>
 
         <h1 className="font-serif font-black text-4xl text-blue-950 mb-2">Privacy Policy</h1>
-        <p className="text-slate-400 text-sm mb-10">Last updated: January 2025</p>
+        <p className="text-slate-400 text-sm mb-10">Last updated: April 2026</p>
 
         <div className="space-y-8 text-slate-700 text-base leading-relaxed">
 
