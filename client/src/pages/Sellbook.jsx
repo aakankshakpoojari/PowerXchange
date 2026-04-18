@@ -605,7 +605,7 @@ className={[
                     📷
                   </div>
                   <p className="text-sm font-medium text-gray-700">Click to upload or drag and drop</p>
-                  <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, WEBP up to 5MB</p>
+                  <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, JPEG, WEBP up to 5MB</p>
                 </div>
               )}
             </div>

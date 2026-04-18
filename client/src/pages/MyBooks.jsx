@@ -369,7 +369,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
                                   Remove
                                 </button>
                               )}
-                              <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+                              <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 5MB</p>
                             </div>
                           </div>
                         </div>
