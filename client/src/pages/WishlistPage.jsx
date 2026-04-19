@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import AuthorName from "../components/AuthorName";
@@ -6,9 +7,29 @@ import AuthorName from "../components/AuthorName";
 export default function WishlistPage({ isLoggedIn, onLogout, cart = [], wishlist = [], addToCart, removeFromCart, removeFromWishlist }) {
   const navigate = useNavigate();
 
-  const handleMoveToCart = (book) => {
+  const handleMoveToCart = async (book) => {
+    // Fetch fresh book data to get latest availability status
+    const { data: freshBook, error } = await supabase
+      .from("books")
+      .select("*")
+      .eq("id", book.id)
+      .single();
+
+    if (error || !freshBook) {
+      alert("Error loading book information. Please try again.");
+      return;
+    }
+
+    // Remove from wishlist
     if (typeof removeFromWishlist === "function") removeFromWishlist(book.id);
-    if (typeof addToCart === "function") addToCart(book);
+    
+    // Add to cart with fresh data
+    if (typeof addToCart === "function") {
+      addToCart({
+        ...freshBook,
+        imageUrl: freshBook.image_url,
+      });
+    }
   };
 
   const isInCart = (bookId) => cart.some((c) => c.id === bookId);
@@ -94,7 +115,7 @@ export default function WishlistPage({ isLoggedIn, onLogout, cart = [], wishlist
                   </div>
 
                   {/* Availability Badge */}
-                  {book.is_available === false || (book.quantity !== undefined && book.quantity <= 0) ? (
+                  {book.is_available === false || (typeof book.quantity === 'number' && book.quantity <= 0) ? (
                     <div className="flex items-center gap-2 mt-3">
                       <p className="text-xs text-red-600 font-semibold flex-1">❌ Currently Unavailable</p>
                       <button

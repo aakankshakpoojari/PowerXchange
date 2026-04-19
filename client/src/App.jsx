@@ -133,7 +133,7 @@ export default function App() {
   // ── Cart actions ─────────────────────────────────────────────────────────
   const addToCart = useCallback(async (book) => {
     // Check if book is available before adding
-    if (book.is_available === false || (book.quantity !== undefined && book.quantity <= 0)) {
+    if (book.is_available === false || (typeof book.quantity === 'number' && book.quantity <= 0)) {
       alert("This book is currently out of stock and cannot be added to cart.");
       return;
     }

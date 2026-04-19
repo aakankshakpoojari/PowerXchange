@@ -93,7 +93,7 @@ export default function BookDetail({ isLoggedIn, onLogout, cart, wishlist, addTo
         imageUrl: bookData.image_url || "https://placehold.co/260x380?text=Book",
         listingType: bookData.price === 0 ? "exchange" : "sell",
         genre: bookData.genre || bookData.category || "General",
-        available: bookData.is_available === true && (bookData.quantity === null || bookData.quantity > 0),
+        available: bookData.is_available === true && (typeof bookData.quantity !== 'number' || bookData.quantity > 0),
       };
 
       console.log("Setting book state:", finalBookData);

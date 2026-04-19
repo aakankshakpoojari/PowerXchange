@@ -1,16 +1,47 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "../supabase";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import AuthorName from "../components/AuthorName";
 
 export default function CartPage({ isLoggedIn, onLogout, cart = [], wishlist = [], removeFromCart, addToWishlist, removeFromWishlist }) {
   const navigate = useNavigate();
+  const [freshCart, setFreshCart] = useState(cart);
 
-  const total = cart.reduce((sum, book) => sum + (Number(book.price) || 0), 0);
+  // Refresh cart items from database to get latest availability status
+  useEffect(() => {
+    const refreshCartData = async () => {
+      if (cart.length === 0) {
+        setFreshCart([]);
+        return;
+      }
+
+      const bookIds = cart.map(b => b.id);
+      const { data: freshBooks, error } = await supabase
+        .from("books")
+        .select("id, title, author, price, image_url, is_available, genre, condition, quantity")
+        .in("id", bookIds);
+
+      if (!error && freshBooks) {
+        // Map fresh data with original cart structure
+        const updatedCart = cart.map(cartBook => {
+          const fresh = freshBooks.find(b => b.id === cartBook.id);
+          return fresh ? { ...cartBook, ...fresh, imageUrl: fresh.image_url } : cartBook;
+        });
+        setFreshCart(updatedCart);
+      }
+    };
+
+    refreshCartData();
+  }, [cart]);
+
+  const displayCart = freshCart.length > 0 ? freshCart : cart;
+  const total = displayCart.reduce((sum, book) => sum + (Number(book.price) || 0), 0);
   
   // Filter available books for purchase
-  const availableBooks = cart.filter(b => b.is_available !== false && (b.quantity === null || b.quantity > 0));
-  const hasUnavailableBooks = cart.length > availableBooks.length;
+  const availableBooks = displayCart.filter(b => b.is_available !== false && (typeof b.quantity !== 'number' || b.quantity > 0));
+  const hasUnavailableBooks = displayCart.length > availableBooks.length;
 
   const handleMoveToWishlist = (book) => {
     if (typeof removeFromCart === "function") removeFromCart(book.id);
@@ -47,13 +78,13 @@ export default function CartPage({ isLoggedIn, onLogout, cart = [], wishlist = [
           </button>
           <h1 className="text-2xl font-bold text-blue-950">
             My Cart
-            {cart.length > 0 && (
-              <span className="ml-2 text-base font-normal text-slate-400">({cart.length} item{cart.length !== 1 ? "s" : ""})</span>
+            {displayCart.length > 0 && (
+              <span className="ml-2 text-base font-normal text-slate-400">({displayCart.length} item{displayCart.length !== 1 ? "s" : ""})</span>
             )}
           </h1>
         </div>
 
-        {cart.length === 0 ? (
+        {displayCart.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="text-6xl">🛒</div>
@@ -72,7 +103,7 @@ export default function CartPage({ isLoggedIn, onLogout, cart = [], wishlist = [
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Cart items */}
             <div className="flex-1 flex flex-col gap-3">
-              {cart.map((book) => (
+              {displayCart.map((book) => (
                 <div
                   key={book.id}
                   className="bg-white border border-blue-100 rounded-2xl p-4 flex gap-4 shadow-sm hover:shadow-md transition-shadow"
@@ -109,7 +140,7 @@ export default function CartPage({ isLoggedIn, onLogout, cart = [], wishlist = [
 
                     {/* Actions */}
                     <div className="flex items-center gap-3 mt-3">
-                      {book.is_available === false || (book.quantity !== undefined && book.quantity <= 0) ? (
+                      {book.is_available === false || (typeof book.quantity === 'number' && book.quantity <= 0) ? (
                         <button disabled className="bg-red-100 text-red-600 text-sm font-semibold px-4 py-1.5 rounded-lg cursor-not-allowed">
                           ❌ Currently Unavailable
                         </button>
@@ -149,7 +180,7 @@ export default function CartPage({ isLoggedIn, onLogout, cart = [], wishlist = [
                 <h2 className="text-base font-bold text-blue-950 mb-4">Order Summary</h2>
 
                 <div className="flex flex-col gap-2 text-sm text-slate-600 mb-4">
-                  {cart.map((book) => (
+                  {displayCart.map((book) => (
                     <div key={book.id} className="flex justify-between gap-2">
                       <span className="truncate max-w-[160px]">{book.title}</span>
                       <span className="font-medium text-blue-900 flex-shrink-0">

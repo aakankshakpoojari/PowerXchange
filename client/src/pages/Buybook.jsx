@@ -127,21 +127,26 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
       return;
     }
 
-    // Block if explicitly marked unavailable or out of stock
-    if (book.is_available === false || (book.quantity !== undefined && book.quantity <= 0)) {
+    // Re-fetch fresh book data to ensure latest availability status
+    const { data: freshBookData, error: freshError } = await supabase
+      .from("books")
+      .select("*")
+      .eq("id", book.id)
+      .single();
+
+    if (freshError || !freshBookData) {
+      alert("Error loading book information. Please try again.");
+      return;
+    }
+
+    // Block if explicitly marked unavailable or out of stock (using fresh data)
+    if (freshBookData.is_available === false || (typeof freshBookData.quantity === 'number' && freshBookData.quantity <= 0)) {
       alert("Sorry, this book is currently out of stock and cannot be purchased.");
       navigate("/home");
       return;
     }
 
-    // Validate seller_id - re-fetch from books table to ensure we have the latest data
-    const { data: freshBookData } = await supabase
-      .from("books")
-      .select("seller_id")
-      .eq("id", book.id)
-      .single();
-
-    if (!freshBookData || !freshBookData.seller_id) {
+    if (!freshBookData.seller_id) {
       alert("Error: This book does not have a valid seller. Please contact support.");
       return;
     }
@@ -150,7 +155,7 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
       book_id: book.id,
       buyer_id: user.id,
       seller_id: freshBookData.seller_id,
-      price: book.price,
+      price: freshBookData.price,
       status: "pending",
       notes: mode === "exchange" ? `[EXCHANGE: ${exchangeBook}] ${message}` : message,
     });
@@ -172,7 +177,7 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
     }
 
     // Send notification to seller
-    if (book.seller_id) {
+    if (freshBookData.seller_id) {
       try {
         // Fetch buyer name for the notification
         const { data: buyerProfile } = await supabase
@@ -183,7 +188,7 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
         const buyerName = buyerProfile?.full_name || "A buyer";
 
         await supabase.from("notifications").insert({
-          user_id: book.seller_id,
+          user_id: freshBookData.seller_id,
           type: mode === "exchange" ? "exchange_request" : "purchase_request",
           title: mode === "exchange" ? "New Exchange Request! 📦" : "New Purchase Request! 🛒",
           message: `${buyerName} wants to ${mode === "exchange" ? "exchange" : "buy"} your book "${book.title}". Check your incoming orders for details.`,
@@ -216,7 +221,7 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
         </button>
 
         {/* Out of Stock Warning */}
-        {(book.is_available === false || (book.quantity !== undefined && book.quantity <= 0)) && (
+        {(book.is_available === false || (typeof book.quantity === 'number' && book.quantity <= 0)) && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-5 mb-5 text-center">
             <p className="text-red-600 font-bold text-base">❌ This book is currently out of stock</p>
             <p className="text-red-500 text-sm mt-1">You cannot place an order for this book at this time.</p>
