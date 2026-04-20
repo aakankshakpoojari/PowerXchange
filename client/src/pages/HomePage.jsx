@@ -146,6 +146,15 @@ function GenreStrip({ onGenreClick, sectionRef }) {
   const [genresLoading, setGenresLoading] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState(Date.now());
 
+  // Expose refresh function to window for manual triggering
+  useEffect(() => {
+    window.refreshGenres = () => {
+      console.log("Manual genre refresh triggered");
+      setLastFetchTime(Date.now());
+    };
+    return () => { delete window.refreshGenres; };
+  }, []);
+
   useEffect(() => {
     const fetchGenres = async () => {
       setGenresLoading(true);

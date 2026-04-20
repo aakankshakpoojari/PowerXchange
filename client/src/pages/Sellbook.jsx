@@ -331,6 +331,11 @@ setShowDropdown(false);
       localStorage.setItem('new-book-added', Date.now().toString());
       localStorage.removeItem('new-book-added');
 
+      // Also trigger genre refresh on HomePage if it's open
+      if (window.refreshGenres) {
+        window.refreshGenres();
+      }
+
       setSubmitted(true);
     } catch (err) {
       alert("Error submitting book: " + err.message);
