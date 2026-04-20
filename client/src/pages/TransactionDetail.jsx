@@ -1,8 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import Navbar from "./Navbar";
-import Footer from "./Footer";
 import { ArrowLeft, Printer, CheckCircle, XCircle, Clock, Package, User, MapPin, Mail, Phone, Calendar, Hash, FileText } from "lucide-react";
 import UserBadge from "../components/UserBadge";
 
@@ -60,7 +58,6 @@ export default function TransactionDetail({ isLoggedIn, onLogout, cart, wishlist
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} cart={cart} wishlist={wishlist} />
         <div className="flex items-center justify-center py-32">
           <div className="text-center">
             <div className="w-10 h-10 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
@@ -74,7 +71,6 @@ export default function TransactionDetail({ isLoggedIn, onLogout, cart, wishlist
   if (!tx) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} cart={cart} wishlist={wishlist} />
         <div className="flex flex-col items-center justify-center py-32 gap-4">
           <div className="text-5xl">🔍</div>
           <h2 className="text-xl font-semibold text-gray-900">Transaction not found</h2>
@@ -99,8 +95,6 @@ export default function TransactionDetail({ isLoggedIn, onLogout, cart, wishlist
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} cart={cart} wishlist={wishlist} />
-
       <div className="max-w-3xl mx-auto px-4 py-8">
 
         {/* Back + Actions */}
@@ -122,7 +116,7 @@ export default function TransactionDetail({ isLoggedIn, onLogout, cart, wishlist
         </div>
 
         {/* Receipt Card */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="">
 
           {/* Header */}
           <div className={`${status.bg} ${status.border} border-b px-6 py-5`}>
@@ -348,8 +342,6 @@ export default function TransactionDetail({ isLoggedIn, onLogout, cart, wishlist
           </button>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 }
