@@ -9,7 +9,10 @@
       "Bash(cat client/src/.env)",
       "Bash(cat .env)",
       "Bash(netstat -ano)",
-      "Bash(findstr :5173)"
+      "Bash(findstr :5173)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

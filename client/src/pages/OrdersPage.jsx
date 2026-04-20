@@ -41,6 +41,7 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
         .from("transactions")
         .select("*, books(id, title, author, image_url, genre, condition, price), seller:seller_id(full_name, email, college)")
         .eq("buyer_id", user.id)
+        .in("status", ["pending", "completed"])
         .order("created_at", { ascending: false });
 
       if (buyerErr) console.error("Error loading purchases:", buyerErr);
