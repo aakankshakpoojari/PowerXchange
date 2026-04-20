@@ -52,6 +52,33 @@ export function searchBooks(query, booksToUse = BOOKS, filters = {}) {
   });
 }
 
+// Helper to render star rating
+function StarRatingDisplay({ rating, size = "sm" }) {
+  const sizeClasses = {
+    sm: "w-3 h-3",
+    md: "w-4 h-4",
+    lg: "w-5 h-5"
+  };
+
+  if (!rating || rating === 0) return null;
+
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <svg
+          key={star}
+          className={`${sizeClasses[size]} ${
+            star <= rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"
+          }`}
+          viewBox="0 0 20 20"
+        >
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
 function AccentBar() {
   return <span className="inline-block w-1 h-5 rounded-sm bg-gradient-to-b from-blue-600 to-cyan-400 flex-shrink-0" />;
 }
@@ -132,6 +159,8 @@ function GenreStrip({ onGenreClick, sectionRef }) {
         .select("name, image_url")
         .order("name");
 
+      console.log("HomePage: Genres table result:", { genreData, genreError });
+
       if (!genreError && genreData && genreData.length > 0) {
         console.log("HomePage: Got genres from genres table:", genreData);
         // Always use avatar with initials for consistent look
@@ -143,7 +172,7 @@ function GenreStrip({ onGenreClick, sectionRef }) {
         return;
       }
 
-      console.log("HomePage: Genres table not available, fetching from books...");
+      console.log("HomePage: Genres table empty or error, fetching from books...");
 
       // Fallback: get unique genres from ALL books (not just approved)
       // This ensures new genres appear immediately
@@ -154,11 +183,13 @@ function GenreStrip({ onGenreClick, sectionRef }) {
         .neq("genre", "")
         .order("created_at", { ascending: false });
 
+      console.log("HomePage: Books genre result:", { booksData, booksError });
+
       if (booksError) {
         console.error("HomePage: Error fetching genres from books:", booksError);
       }
 
-      if (!booksError && booksData) {
+      if (!booksError && booksData && booksData.length > 0) {
         console.log("HomePage: Got genres from books:", booksData);
         const uniqueGenres = [...new Set(booksData.map(b => b.genre).filter(g => g))];
         console.log("HomePage: Unique genres:", uniqueGenres);
@@ -166,6 +197,8 @@ function GenreStrip({ onGenreClick, sectionRef }) {
           name: g,
           img: getGenreImage(g, 80)
         })));
+      } else {
+        console.log("HomePage: No genres found in books either");
       }
       setGenresLoading(false);
     };
@@ -177,7 +210,7 @@ function GenreStrip({ onGenreClick, sectionRef }) {
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'new-book-added') {
-        console.log("HomePage: New book added, refreshing genres...");
+        console.log("HomePage: New book added (storage event), refreshing genres...");
         setLastFetchTime(Date.now());
       }
     };
@@ -192,9 +225,16 @@ function GenreStrip({ onGenreClick, sectionRef }) {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Poll for new genres every 10 seconds
+    const interval = setInterval(() => {
+      console.log("HomePage: Polling for new genres...");
+      setLastFetchTime(Date.now());
+    }, 10000);
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
     };
   }, []);
 
@@ -234,7 +274,7 @@ function GenreStrip({ onGenreClick, sectionRef }) {
   );
 }
 
-function SearchResults({ query, onBookClick, booksToUse }) {
+function SearchResults({ query, onBookClick, booksToUse, bookRatings }) {
   const [filters, setFilters] = useState({
     genre: "All",
     condition: "All",
@@ -341,39 +381,48 @@ function SearchResults({ query, onBookClick, booksToUse }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {results.map((b) => (
-            <div key={b.id} onClick={() => onBookClick(b.id)}
-              className="bg-white border border-blue-100 rounded-xl overflow-hidden shadow-sm
-                hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-pointer group">
-              <div className="h-64 overflow-hidden bg-blue-50">
-                <img src={b.imageUrl} alt={b.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={(e) => { e.target.src = "https://placehold.co/150x256?text=Book"; }} />
-              </div>
-              <div className="p-2.5">
-                <p className="font-semibold text-blue-950 text-xs leading-snug mb-1 line-clamp-2">{b.title}</p>
-                <p className="text-[10px] text-slate-400 mb-2 truncate">{b.author}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-blue-700">₹{b.price}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                    b.condition === "Brand New" ? "bg-green-100 text-green-700" :
-                    b.condition === "Like New" ? "bg-blue-100 text-blue-700" :
-                    b.condition === "Good Condition" ? "bg-yellow-100 text-yellow-700" :
-                    "bg-orange-100 text-orange-700"
-                  }`}>
-                    {b.condition}
-                  </span>
+          {results.map((b) => {
+            const rating = bookRatings[b.id];
+            return (
+              <div key={b.id} onClick={() => onBookClick(b.id)}
+                className="bg-white border border-blue-100 rounded-xl overflow-hidden shadow-sm
+                  hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-pointer group">
+                <div className="h-64 overflow-hidden bg-blue-50">
+                  <img src={b.imageUrl} alt={b.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => { e.target.src = "https://placehold.co/150x256?text=Book"; }} />
+                </div>
+                <div className="p-2.5">
+                  <p className="font-semibold text-blue-950 text-xs leading-snug mb-1 line-clamp-2">{b.title}</p>
+                  <p className="text-[10px] text-slate-400 mb-2 truncate">{b.author}</p>
+                  {rating && (
+                    <div className="flex items-center gap-1 mb-2">
+                      <StarRatingDisplay rating={Math.round(rating.average)} size="sm" />
+                      <span className="text-[10px] text-gray-500">({rating.count})</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-blue-700">₹{b.price}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                      b.condition === "Brand New" ? "bg-green-100 text-green-700" :
+                      b.condition === "Like New" ? "bg-blue-100 text-blue-700" :
+                      b.condition === "Good Condition" ? "bg-yellow-100 text-yellow-700" :
+                      "bg-orange-100 text-orange-700"
+                    }`}>
+                      {b.condition}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function BookGridSlider({ title, data, onBookClick }) {
+function BookGridSlider({ title, data, onBookClick, bookRatings }) {
   const ref = useRef(null);
   const autoScrollRef = useRef(null);
   const pausedRef = useRef(false);
@@ -457,6 +506,12 @@ function BookGridSlider({ title, data, onBookClick }) {
             <div className="p-3">
               <p className="font-semibold text-blue-950 text-base leading-snug mb-1 line-clamp-2">{book.title}</p>
               <p className="text-sm text-slate-500 mb-2 truncate">{book.author || "Unknown"}</p>
+              {bookRatings && bookRatings[book.id] && (
+                <div className="flex items-center gap-1 mb-2">
+                  <StarRatingDisplay rating={Math.round(bookRatings[book.id].average)} size="sm" />
+                  <span className="text-[10px] text-gray-500">({bookRatings[book.id].count})</span>
+                </div>
+              )}
               <span className="text-lg font-bold text-blue-700">₹{book.price}</span>
             </div>
           </div>
@@ -468,7 +523,7 @@ function BookGridSlider({ title, data, onBookClick }) {
   );
 }
 
-function BookRowSlider({ title, data, onBookClick }) {
+function BookRowSlider({ title, data, onBookClick, bookRatings }) {
   const ref = useRef(null);
   return (
     <div className="px-7 mt-8 relative">
@@ -484,9 +539,15 @@ function BookRowSlider({ title, data, onBookClick }) {
             <img src={book.img} alt={book.title}
               className="w-[90px] h-32 object-cover rounded-lg flex-shrink-0 shadow-md"
               onError={(e) => { e.target.src = "https://placehold.co/90x128/1d4ed8/ffffff?text=Book"; }} />
-            <div>
-              <p className="font-semibold text-base text-blue-950 leading-snug mb-3">{book.title}</p>
-              <p className="text-sm text-slate-500 mb-2">{book.author || "Unknown"}</p>
+            <div className="flex-1">
+              <p className="font-semibold text-base text-blue-950 leading-snug mb-1">{book.title}</p>
+              <p className="text-sm text-slate-500 mb-1">{book.author || "Unknown"}</p>
+              {bookRatings && bookRatings[book.id] && (
+                <div className="flex items-center gap-1 mb-2">
+                  <StarRatingDisplay rating={Math.round(bookRatings[book.id].average)} size="sm" />
+                  <span className="text-[10px] text-gray-500">({bookRatings[book.id].count})</span>
+                </div>
+              )}
               <span className="text-lg font-bold text-blue-700">₹{book.price}</span>
             </div>
           </div>
@@ -590,6 +651,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
   const [newArrivalsLoading, setNewArrivalsLoading] = useState(true);
   const [trendingBooks, setTrendingBooks] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+  const [bookRatings, setBookRatings] = useState({});
 
   const params      = new URLSearchParams(location.search);
   const searchQuery = params.get("q") || "";
@@ -604,13 +666,59 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
         .order("created_at", { ascending: false });
 
       if (!error && data) {
+        console.log("HomePage: Fetched books:", data.length);
         setDbBooks(data);
+        // Fetch ratings for these books
+        fetchBookRatings(data.map(b => b.id));
+      } else {
+        console.error("HomePage: Error fetching books:", error);
       }
       setLoading(false);
     };
 
     fetchBooks();
   }, []);
+
+  // Fetch average ratings for books
+  const fetchBookRatings = async (bookIds) => {
+    if (!bookIds || bookIds.length === 0) return;
+
+    const { supabase } = await import("../supabase");
+    const { data, error } = await supabase
+      .from("book_reviews")
+      .select("book_id, rating")
+      .in("book_id", bookIds);
+
+    console.log("HomePage: Fetched reviews for", bookIds.length, "books:", { data, error });
+
+    if (!error && data) {
+      // Calculate average rating per book
+      const ratingsMap = {};
+      const sums = {};
+      const counts = {};
+
+      data.forEach(r => {
+        if (!sums[r.book_id]) {
+          sums[r.book_id] = 0;
+          counts[r.book_id] = 0;
+        }
+        sums[r.book_id] += r.rating;
+        counts[r.book_id] += 1;
+      });
+
+      Object.keys(sums).forEach(bookId => {
+        ratingsMap[bookId] = {
+          average: Math.round((sums[bookId] / counts[bookId]) * 2) / 2, // Round to nearest 0.5
+          count: counts[bookId]
+        };
+      });
+
+      console.log("HomePage: Calculated ratings:", ratingsMap);
+      setBookRatings(prev => ({ ...prev, ...ratingsMap }));
+    } else if (error) {
+      console.error("HomePage: Error fetching ratings:", error);
+    }
+  };
 
   // Fetch new arrivals queue: latest 20 books by date added
   useEffect(() => {
@@ -623,6 +731,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
         .limit(20);
 
       if (!error && data) {
+        console.log("HomePage: Fetched new arrivals:", data.length);
         const queue = data.map(b => ({
           id: b.id,
           title: b.title,
@@ -631,6 +740,9 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
           img: b.image_url || b.cover_url || "https://placehold.co/200x160?text=Book"
         }));
         setNewArrivalsQueue(queue);
+        fetchBookRatings(data.map(b => b.id));
+      } else {
+        console.error("HomePage: Error fetching new arrivals:", error);
       }
       setNewArrivalsLoading(false);
     };
@@ -681,6 +793,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
 
           if (trending.length > 0) {
             setTrendingBooks(trending);
+            fetchBookRatings(bookIds);
             setTrendingLoading(false);
             return;
           }
@@ -696,13 +809,15 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
         .limit(10);
 
       if (!fallbackError && fallbackData) {
-        setTrendingBooks(fallbackData.map(b => ({
+        const fallback = fallbackData.map(b => ({
           id: b.id,
           title: b.title,
           author: b.author || "Unknown",
           price: b.price || 0,
           img: b.image_url || b.cover_url || "https://placehold.co/220x288?text=Book"
-        })));
+        }));
+        setTrendingBooks(fallback);
+        fetchBookRatings(fallbackData.map(b => b.id));
       }
       setTrendingLoading(false);
     };
@@ -728,6 +843,8 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
   // trending is now fetched from database based on sales, views, ratings
   // falls back to recently added books if no statistics exist
 
+  console.log("HomePage render:", { loading, dbBooks: dbBooks.length, trendingBooks: trendingBooks.length, newArrivalsQueue: newArrivalsQueue.length, bookRatings });
+
   return (
     <div className="min-h-screen bg-blue-50 font-sans">
       <Navbar isLoggedIn={isLoggedIn} isAdmin={isAdmin} onLogout={onLogout} cart={cart} wishlist={wishlist} />
@@ -743,7 +860,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
               Back
             </button>
           </div>
-          <SearchResults query={searchQuery} onBookClick={(id) => navigate(`/books/${id}`)} booksToUse={booksToUse} />
+          <SearchResults query={searchQuery} onBookClick={(id) => navigate(`/books/${id}`)} booksToUse={booksToUse} bookRatings={bookRatings} />
         </div>
       ) : (
         <>
@@ -786,7 +903,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
                   </div>
                 </div>
               ) : trendingBooks.length > 0 ? (
-                <BookGridSlider title="Trending Now" data={trendingBooks} onBookClick={(id) => navigate(`/books/${id}`)} />
+                <BookGridSlider title="Trending Now" data={trendingBooks} onBookClick={(id) => navigate(`/books/${id}`)} bookRatings={bookRatings} />
               ) : null}
 
               {/* New Arrivals */}
@@ -800,15 +917,63 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
                   </div>
                 </div>
               ) : newArrivalsQueue.length > 0 ? (
-                <BookRowSlider title="New Arrivals" data={newArrivalsQueue} onBookClick={(id) => navigate(`/books/${id}`)} />
+                <BookRowSlider title="New Arrivals" data={newArrivalsQueue} onBookClick={(id) => navigate(`/books/${id}`)} bookRatings={bookRatings} />
               ) : null}
 
               {/* Condition Slider — always shown */}
               <ConditionSlider title="Choose Your Book Condition" data={conditionData} onConditionClick={(cond) => navigate(`/condition/${encodeURIComponent(cond)}`)} />
 
               {/* Show a friendly message if DB is still loading the main books */}
-              {loading && (
+              {loading ? (
                 <div className="text-center py-10 text-gray-400 text-sm">Loading more books…</div>
+              ) : dbBooks.length === 0 ? (
+                <div className="text-center py-10 text-gray-400">
+                  <p className="text-lg font-medium mb-2">No books available yet</p>
+                  <p className="text-sm">Check back later or be the first to sell a book!</p>
+                </div>
+              ) : (
+                <div className="px-7 mt-8">
+                  <h2 className="flex items-center gap-2.5 font-serif font-bold text-xl text-blue-950 mb-4">
+                    <AccentBar />All Books
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {dbBooks.slice(0, 12).map((b) => {
+                      const rating = bookRatings[b.id];
+                      return (
+                        <div key={b.id} onClick={() => navigate(`/books/${b.id}`)}
+                          className="bg-white border border-blue-100 rounded-xl overflow-hidden shadow-sm
+                            hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-pointer group">
+                          <div className="h-64 overflow-hidden bg-blue-50">
+                            <img src={b.image_url || b.cover_url} alt={b.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => { e.target.src = "https://placehold.co/150x256?text=Book"; }} />
+                          </div>
+                          <div className="p-2.5">
+                            <p className="font-semibold text-blue-950 text-xs leading-snug mb-1 line-clamp-2">{b.title}</p>
+                            <p className="text-[10px] text-slate-400 mb-2 truncate">{b.author || "Unknown"}</p>
+                            {rating && (
+                              <div className="flex items-center gap-1 mb-2">
+                                <StarRatingDisplay rating={Math.round(rating.average)} size="sm" />
+                                <span className="text-[10px] text-gray-500">({rating.count})</span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold text-blue-700">₹{b.price || 0}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                                b.condition === "Brand New" ? "bg-green-100 text-green-700" :
+                                b.condition === "Like New" ? "bg-blue-100 text-blue-700" :
+                                b.condition === "Good Condition" ? "bg-yellow-100 text-yellow-700" :
+                                "bg-orange-100 text-orange-700"
+                              }`}>
+                                {b.condition || "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </>
           )}
