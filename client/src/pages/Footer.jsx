@@ -64,7 +64,8 @@ export default function Footer() {
 
         </div>
         <div className="border-t border-white/10 py-4 text-center">
-          <p className="text-sm text-blue-400/60">© 2026 PowerXchange. All rights reserved.</p>
+          <p className="text-sm text-blue-400/60">© 2026cd client
+           PowerXchange. All rights reserved.</p>
         </div>
       </footer>
     </div>
