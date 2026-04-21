@@ -125,9 +125,20 @@ export default function AdminBooks() {
       {/* Header */}
       <header className="bg-indigo-700 text-white shadow-lg">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <Link to="/admin" className="text-indigo-200 hover:text-white">&larr; Back to Dashboard</Link>
-            <h1 className="text-2xl font-bold">Book Management</h1>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-indigo-200 hover:text-white transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold">Book Management</h1>
+              <p className="text-indigo-200 text-sm">Approve, edit, or remove book listings</p>
+            </div>
           </div>
           <button
             onClick={() => { supabase.auth.signOut(); navigate("/"); }}
