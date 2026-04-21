@@ -20,6 +20,35 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const imageInputRef = useRef(null);
 
+  // Dynamic genres from database
+  const [dbGenres, setDbGenres] = useState([]);
+
+  useEffect(() => {
+    const fetchGenres = async () => {
+      const { supabase } = await import("../supabase");
+
+      // Try genres table first
+      const { data: genreData } = await supabase.from("genres").select("name").order("name");
+
+      if (genreData && genreData.length > 0) {
+        setDbGenres([...new Set([...genreData.map(g => g.name), ...GENRES])]);
+        return;
+      }
+
+      // Fallback to books table
+      const { data: booksData } = await supabase.from("books").select("genre").not("genre", "is", null).neq("genre", "");
+
+      if (booksData) {
+        const uniqueGenres = [...new Set([...booksData.map(b => b.genre), ...GENRES])];
+        setDbGenres(uniqueGenres);
+      } else {
+        setDbGenres(GENRES);
+      }
+    };
+
+    fetchGenres();
+  }, []);
+
   useEffect(() => {
     loadUserBooks();
   }, []);
@@ -72,9 +101,9 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
     setUpdating(false);
   };
 
-  const GENRES = ["Fiction","Non-Fiction","Science","Technology","Mathematics","History","Biography","Self-Help","Business","Arts","Comics","Other"];
-  const CONDITIONS = ["new","good","acceptable"];
-  const CONDITION_LABELS = { new: "New", good: "Good", acceptable: "Acceptable" };
+  // Use same values as Sellbook.jsx
+  const GENRES = ["Fiction", "Non-Fiction", "Science", "Mathematics", "Engineering", "Medicine", "History", "Philosophy", "Economics", "Computer Science", "Literature", "Self-Help", "Biography", "Law", "Art and Design", "Other"];
+  const CONDITIONS = ["Brand New", "Like New", "Good Condition", "Old Copies"];
 
   const handleEditDetails = (book) => {
     setEditingBook(book.id);
@@ -337,20 +366,14 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
                           <label className="text-xs text-gray-500 block mb-1 font-medium">Book Image</label>
                           <div className="flex items-center gap-3">
                             <div className="w-16 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                              {imagePreview ? (
-                                <img
-                                  src={imagePreview}
-                                  alt="Preview"
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.target.src = "https://placehold.co/80x112?text=No+Cover";
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xl">
-                                  📖
-                                </div>
-                              )}
+                              <img
+                                src={imagePreview || "https://placehold.co/80x112?text=No+Cover"}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src = "https://placehold.co/80x112?text=No+Cover";
+                                }}
+                              />
                             </div>
                             <div className="flex-1">
                               <input
@@ -372,6 +395,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
                                   type="button"
                                   onClick={() => {
                                     setImagePreview(null);
+                                    setEditForm({ ...editForm, image_url: "" });
                                     if (imageInputRef.current) imageInputRef.current.value = "";
                                   }}
                                   className="ml-2 text-xs text-red-500 hover:text-red-700"
@@ -393,7 +417,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
                               className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
                             >
                               <option value="">Select genre</option>
-                              {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                              {dbGenres.map(g => <option key={g} value={g}>{g}</option>)}
                             </select>
                           </div>
                           <div>
@@ -404,7 +428,7 @@ export default function MyBooks({ isLoggedIn, onLogout, cart, wishlist }) {
                               className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
                             >
                               <option value="">Select condition</option>
-                              {CONDITIONS.map(c => <option key={c} value={c}>{CONDITION_LABELS[c]}</option>)}
+                              {CONDITIONS.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                           </div>
                         </div>

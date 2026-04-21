@@ -13,12 +13,6 @@ export function getGenreImage(genreName, size = 200) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(genreName)}&size=${size}&background=dbeafe&color=1d4ed8&bold=true`;
 }
 
-const conditionData = [
-  { title: "Brand New",      img: "https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=220&fit=crop" },
-  { title: "Like New",       img: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=220&fit=crop" },
-  { title: "Good Condition", img: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400&h=220&fit=crop" },
-  { title: "Old Copies",     img: "https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=400&h=220&fit=crop" },
-];
 
 export function searchBooks(query, booksToUse = BOOKS, filters = {}) {
   if (!query && !Object.keys(filters).length) return booksToUse;
@@ -215,11 +209,11 @@ function GenreStrip({ onGenreClick, sectionRef }) {
     fetchGenres();
   }, [lastFetchTime]);
 
-  // Listen for storage events (when another tab/page adds a new genre)
+  // Listen for storage events (when another tab/page adds a new genre or book is sold)
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'new-book-added') {
-        console.log("HomePage: New book added (storage event), refreshing genres...");
+      if (e.key === 'new-book-added' || e.key === 'book-sold-refresh') {
+        console.log("HomePage: Book event detected (storage event), refreshing genres...", e.key);
         setLastFetchTime(Date.now());
       }
     };
@@ -569,27 +563,86 @@ function BookRowSlider({ title, data, onBookClick, bookRatings }) {
   );
 }
 
-function ConditionSlider({ title, data, onConditionClick }) {
+function ConditionSlider({ title, onConditionClick }) {
   const ref = useRef(null);
+  const [conditions, setConditions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const STATIC_CONDITIONS = [
+    { title: "Brand New",      img: "https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&h=220&fit=crop" },
+    { title: "Like New",       img: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=220&fit=crop" },
+    { title: "Good Condition", img: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400&h=220&fit=crop" },
+    { title: "Old Copies",     img: "https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=400&h=220&fit=crop" },
+  ];
+
+  // Listen for book-sold-refresh events
+  useEffect(() => {
+    const handleBookRefresh = (e) => {
+      if (e.key === 'book-sold-refresh' || e.key === 'new-book-added') {
+        console.log("ConditionSlider: Refreshing conditions...");
+        setRefreshKey(prev => prev + 1);
+      }
+    };
+    window.addEventListener('storage', handleBookRefresh);
+    return () => window.removeEventListener('storage', handleBookRefresh);
+  }, []);
+
+  useEffect(() => {
+    const fetchConditions = async () => {
+      const { supabase } = await import("../supabase");
+
+      // Get all unique conditions from available books
+      const { data, error } = await supabase
+        .from("books")
+        .select("condition")
+        .eq("is_approved", true)
+        .eq("is_available", true)
+        .not("condition", "is", null)
+        .neq("condition", "");
+
+      if (!error && data) {
+        const uniqueConditions = [...new Set(data.map(b => b.condition))];
+        // Map to static condition data for images
+        const conditionsWithImages = uniqueConditions
+          .map(cond => STATIC_CONDITIONS.find(c => c.title === cond) || { title: cond, img: `https://placehold.co/210x128?text=${encodeURIComponent(cond)}` })
+          .sort((a, b) => STATIC_CONDITIONS.findIndex(c => c.title === a.title) - STATIC_CONDITIONS.findIndex(c => c.title === b.title));
+
+        setConditions(conditionsWithImages);
+      }
+      setLoading(false);
+    };
+
+    fetchConditions();
+  }, [refreshKey]);
+
   return (
     <div className="px-7 mt-8 relative">
       <h2 className="flex items-center gap-2.5 font-serif font-bold text-xl text-blue-950 mb-4">
         <AccentBar />{title}
       </h2>
       <div ref={ref} className="flex gap-4 overflow-x-auto scrollbar-hide pb-1">
-        {data.map((item, i) => (
-          <div key={i}
-            onClick={() => onConditionClick && onConditionClick(item.title)}
-            className="min-w-[210px] max-w-[210px] flex-shrink-0 bg-white rounded-xl border border-blue-100
-              overflow-hidden shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer">
-            <img src={item.img} alt={item.title} className="w-full h-32 object-cover"
-              onError={(e) => { e.target.src = `https://placehold.co/210x128/1d4ed8/ffffff?text=${encodeURIComponent(item.title)}`; }} />
-            <div className="p-3">
-              <p className="font-semibold text-base text-blue-950 mb-2">{item.title}</p>
-              <RentBtn label="Browse" />
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="min-w-[210px] h-48 bg-blue-100 rounded-xl animate-pulse" />
+          ))
+        ) : conditions.length > 0 ? (
+          conditions.map((item) => (
+            <div key={item.title}
+              onClick={() => onConditionClick && onConditionClick(item.title)}
+              className="min-w-[210px] max-w-[210px] flex-shrink-0 bg-white rounded-xl border border-blue-100
+                overflow-hidden shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer">
+              <img src={item.img} alt={item.title} className="w-full h-32 object-cover"
+                onError={(e) => { e.target.src = `https://placehold.co/210x128/1d4ed8/ffffff?text=${encodeURIComponent(item.title)}`; }} />
+              <div className="p-3">
+                <p className="font-semibold text-base text-blue-950 mb-2">{item.title}</p>
+                <RentBtn label="Browse" />
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-gray-400 text-sm py-4 px-2">No conditions available yet</p>
+        )}
       </div>
       <ProgressBar pct={100} />
       <ArrowBtn side="left"  onClick={() => ref.current.scrollBy({ left: -400, behavior: "smooth" })} />
@@ -665,6 +718,21 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
   const params      = new URLSearchParams(location.search);
   const searchQuery = params.get("q") || "";
 
+  // Track book refreshes for when books are sold/added
+  const [bookRefreshKey, setBookRefreshKey] = useState(0);
+
+  // Listen for book-sold-refresh events to update the books list
+  useEffect(() => {
+    const handleBookRefresh = (e) => {
+      if (e.key === 'book-sold-refresh' || e.key === 'new-book-added') {
+        console.log("HomePage: Book refresh event detected, updating books list");
+        setBookRefreshKey(prev => prev + 1);
+      }
+    };
+    window.addEventListener('storage', handleBookRefresh);
+    return () => window.removeEventListener('storage', handleBookRefresh);
+  }, []);
+
   // Fetch all books for general display
   useEffect(() => {
     const fetchBooks = async () => {
@@ -686,7 +754,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
     };
 
     fetchBooks();
-  }, []);
+  }, [bookRefreshKey]);
 
   // Fetch average ratings for books
   const fetchBookRatings = async (bookIds) => {
@@ -757,7 +825,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
     };
 
     fetchNewArrivals();
-  }, []);
+  }, [bookRefreshKey]);
 
   // Fetch trending books: top 10 by sales, views, ratings (with fallback)
   useEffect(() => {
@@ -832,7 +900,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
     };
 
     fetchTrendingBooks();
-  }, []);
+  }, [bookRefreshKey]);
 
   // Use database books if available
   const booksToUse = dbBooks.map(b => ({
@@ -930,7 +998,7 @@ export default function HomePage({ isLoggedIn, isAdmin, onLogout, cart, wishlist
               ) : null}
 
               {/* Condition Slider — always shown */}
-              <ConditionSlider title="Choose Your Book Condition" data={conditionData} onConditionClick={(cond) => navigate(`/condition/${encodeURIComponent(cond)}`)} />
+              <ConditionSlider title="Choose Your Book Condition" onConditionClick={(cond) => navigate(`/condition/${encodeURIComponent(cond)}`)} />
 
               {/* Show a friendly message if DB is still loading the main books */}
               {loading ? (
