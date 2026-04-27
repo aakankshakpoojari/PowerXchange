@@ -165,17 +165,6 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
       return;
     }
 
-    await supabase
-      .from("books")
-      .update({ is_available: false })
-      .eq("id", book.id);
-
-    try {
-      await supabase.rpc("increment_book_sales", { p_book_id: book.id });
-    } catch (err) {
-      console.error("Error incrementing sales:", err);
-    }
-
     // Send notification to seller
     if (freshBookData.seller_id) {
       try {

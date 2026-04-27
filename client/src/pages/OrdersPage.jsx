@@ -63,6 +63,50 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
     setLoading(false);
   };
 
+  const cancelOtherPendingRequests = async ({ bookId, acceptedTxId, sellerId, bookTitle, sellerName }) => {
+    try {
+      const { data: pendingRequests, error: requestErr } = await supabase
+        .from("transactions")
+        .select("id, buyer_id")
+        .eq("book_id", bookId)
+        .eq("seller_id", sellerId)
+        .eq("status", "pending")
+        .neq("id", acceptedTxId);
+
+      if (requestErr) {
+        console.error("Error fetching other pending requests:", requestErr);
+        return;
+      }
+
+      if (!pendingRequests || pendingRequests.length === 0) return;
+
+      const pendingIds = pendingRequests.map((request) => request.id);
+      const { error: cancelErr } = await supabase
+        .from("transactions")
+        .update({ status: "cancelled" })
+        .in("id", pendingIds);
+
+      if (cancelErr) {
+        console.error("Error cancelling other pending requests:", cancelErr);
+      }
+
+      const notifications = pendingRequests.map((request) => ({
+        user_id: request.buyer_id,
+        type: "request_declined",
+        title: "Your request could not be fulfilled",
+        message: `${sellerName} has accepted another request for "${bookTitle}". Your request has been cancelled.`,
+        transaction_id: request.id,
+      }));
+
+      const { error: notifErr } = await supabase.from("notifications").insert(notifications);
+      if (notifErr) {
+        console.error("Error notifying buyers about cancelled requests:", notifErr);
+      }
+    } catch (err) {
+      console.error("Unexpected error cancelling other pending requests:", err);
+    }
+  };
+
   const handleAccept = async (tx) => {
     setActionLoading(tx.id);
     try {
@@ -72,6 +116,51 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
         .eq("id", tx.id);
 
       if (error) throw error;
+
+      // Mark the book sold/unavailable only when the seller accepts the request.
+      let bookNowUnavailable = false;
+      if (tx.books?.id) {
+        const bookUpdate = {};
+        if (typeof tx.books.quantity === "number") {
+          const newQuantity = Math.max((tx.books.quantity || 0) - 1, 0);
+          bookUpdate.quantity = newQuantity;
+          if (newQuantity <= 0) {
+            bookUpdate.is_available = false;
+            bookNowUnavailable = true;
+          }
+        } else {
+          bookUpdate.is_available = false;
+          bookNowUnavailable = true;
+        }
+
+        if (Object.keys(bookUpdate).length > 0) {
+          await supabase.from("books").update(bookUpdate).eq("id", tx.books.id);
+        }
+      }
+
+      if (tx.books?.id) {
+        try {
+          await supabase.rpc("increment_book_sales", { p_book_id: tx.books.id });
+        } catch (salesErr) {
+          console.error("Error incrementing sales:", salesErr);
+        }
+      }
+
+      if (bookNowUnavailable && tx.books?.id) {
+        try {
+          const bookTitle = tx.books?.title || "the book";
+          const sellerName = tx.seller?.full_name || "The seller";
+          await cancelOtherPendingRequests({
+            bookId: tx.books.id,
+            acceptedTxId: tx.id,
+            sellerId: tx.seller_id,
+            bookTitle,
+            sellerName,
+          });
+        } catch (cancelErr) {
+          console.error("Error handling other pending requests after accept:", cancelErr);
+        }
+      }
 
       // Notify buyer
       try {
@@ -123,20 +212,6 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
         console.error("Notification error (non-fatal):", notifErr);
       }
 
-      // Restore book quantity
-      if (tx.books?.id) {
-        const { data: book } = await supabase
-          .from("books").select("quantity, title").eq("id", tx.books.id).single();
-        if (book) {
-          await supabase.from("books")
-            .update({ quantity: (book.quantity || 0) + 1, is_available: true })
-            .eq("id", tx.books.id);
-          
-          // Notify users who wishlisted this book
-          await notifyWishlistUsers(tx.books.id, book);
-        }
-      }
-
       setSuccessMsg("Order declined. The buyer has been notified.");
       setTimeout(() => setSuccessMsg(""), 3000);
       await loadData();
@@ -180,20 +255,6 @@ export default function OrdersPage({ isLoggedIn, onLogout, cart, wishlist }) {
       } catch (notifErr) {
         // Log silently — order is already cancelled, don't alarm the user
         console.error("Notification error (non-fatal):", notifErr);
-      }
-
-      // Step 3: Restore book quantity
-      if (tx.books?.id) {
-        const { data: book } = await supabase
-          .from("books").select("quantity, title").eq("id", tx.books.id).single();
-        if (book) {
-          await supabase.from("books")
-            .update({ quantity: (book.quantity || 0) + 1, is_available: true })
-            .eq("id", tx.books.id);
-          
-          // Notify users who wishlisted this book
-          await notifyWishlistUsers(tx.books.id, book);
-        }
       }
 
       setSuccessMsg("Order cancelled successfully.");
