@@ -165,6 +165,15 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
       return;
     }
 
+    // Note: Book remains available until seller marks it unavailable or transaction completes
+    // Only increment sales count after transaction is completed (done by admin/seller)
+
+    try {
+      await supabase.rpc("increment_book_views", { p_book_id: book.id });
+    } catch (err) {
+      console.error("Error incrementing views:", err);
+    }
+
     // Send notification to seller
     if (freshBookData.seller_id) {
       try {
@@ -192,6 +201,10 @@ export default function BuyBook({ isLoggedIn, onLogout, cart, wishlist, removeFr
     if (typeof removeFromCart === 'function') {
       removeFromCart(book.id);
     }
+
+    // Trigger homepage refresh - new book sold, update genre and condition sections
+    localStorage.setItem('book-sold-refresh', Date.now().toString());
+    localStorage.removeItem('book-sold-refresh');
 
     setSubmitted(true);
   };

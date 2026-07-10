@@ -206,6 +206,12 @@ export default function App() {
 
   const isLoggedIn = authState === "user" || authState === "admin";
   const isAdmin = authState === "admin";
+
+  // Debug: log admin state changes
+  useEffect(() => {
+    console.log("App.jsx: authState =", authState, "isAdmin =", isAdmin);
+  }, [authState, isAdmin]);
+
   const sharedProps = { isLoggedIn, isAdmin, onLogout: handleLogout, cart, wishlist, addToCart, removeFromCart, addToWishlist, removeFromWishlist };
 
   if (authState === "loading") {

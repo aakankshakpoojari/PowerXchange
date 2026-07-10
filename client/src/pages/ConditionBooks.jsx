@@ -20,13 +20,14 @@ export default function ConditionBooks({ isLoggedIn, onLogout, cart, wishlist })
     const { data, error } = await supabase
       .from("books")
       .select("*")
-      .eq("is_approved", true)
       .eq("is_available", true)
       .eq("condition", condition)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
       setBooks(data);
+    } else if (error) {
+      console.error("Error fetching condition books:", error);
     }
     setLoading(false);
   }

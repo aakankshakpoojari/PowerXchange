@@ -112,11 +112,22 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="bg-indigo-700 text-white shadow-lg">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-indigo-200 text-sm">
-              Welcome, {admin?.full_name || admin?.email || "Admin"}
-            </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-indigo-200 hover:text-white transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+              <p className="text-indigo-200 text-sm">
+                Welcome, {admin?.full_name || admin?.email || "Admin"}
+              </p>
+            </div>
           </div>
           <div className="flex gap-4">
             <Link to="/home" className="px-4 py-2 text-indigo-100 hover:text-white">
